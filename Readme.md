@@ -16,6 +16,7 @@
 	*	一致性 hash 算法
 	*	普通的 WRR 算法
 -	实现多种实用的拦截器实现接口
+	*	拦截器链（chain）实现
 	*	recovery panic
 	*	global request id
 		*	贯穿一个 RPC 生命周期的 reqeustid

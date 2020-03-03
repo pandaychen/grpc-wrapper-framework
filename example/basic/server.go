@@ -26,7 +26,6 @@ func main() {
 		panic(err)
 	}
 	s := atreus.NewServer()
-	s.BindAddr = fmt.Sprintf("0.0.0.0:%d", *port)
 	pb.RegisterGreeterServiceServer(s, &xServer{})
 	s.Serve(lis)
 }
