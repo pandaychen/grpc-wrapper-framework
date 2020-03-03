@@ -1,14 +1,17 @@
 syntax = "proto3";
 
+// protoc -I=. *.proto --go_out=plugins=grpc:.
+
 option java_multiple_files = true;
 option java_package = "io.grpc.examples.helloworld";
 option java_outer_classname = "HelloWorldProto";
 
 package proto;
 
-//a common RPC names Greeter_SayHello
-service Greeter {
+//a common RPC names with Serivce suffix
+service GreeterService {
     rpc SayHello (HelloRequest) returns (HelloReply) {}
+    //rpc ErrorSayHello(HelloRequest) returns  (HelloReply) {}
 }
 
 message HelloRequest {

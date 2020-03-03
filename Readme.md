@@ -18,7 +18,9 @@
 -	实现多种实用的拦截器实现接口
 	*	recovery panic
 	*	global request id
+		*	贯穿一个 RPC 生命周期的 reqeustid
 	*	通用的 zap-Logger
+		*	按照请求记录日志，关联到 ctx
 	*	限流算法
 		*	令牌桶
 		*	漏桶
@@ -26,6 +28,9 @@
 -	支持 jaeger/zipkin 链路追踪
 -	支持动态配置更新（远程和本地）
 -	支持内置健康检查服务
--	gRPC网关？
+-	gRPC 网关
 
 
+grpc 开启的参数：
+-	keepalives 配置（双向，长连接）
+-	backoff
