@@ -17,11 +17,14 @@
 	*	普通的 WRR 算法
 -	实现多种实用的拦截器实现接口
 	*	拦截器链（chain）实现
+		*	客户端拦截器
+		*	服务端拦截器
 	*	recovery panic
 	*	global request id
-		*	贯穿一个 RPC 生命周期的 reqeustid
+		*	贯穿一个 RPC 生命周期的 requestid
 	*	通用的 zap-Logger
 		*	按照请求记录日志，关联到 ctx
+		*	zap包+ctx关联的日志输出
 	*	限流算法
 		*	令牌桶
 		*	漏桶
