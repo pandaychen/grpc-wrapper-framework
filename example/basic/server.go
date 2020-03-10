@@ -6,8 +6,10 @@ import (
 	"net"
 
 	"github.com/pandaychen/grpc-wrapper-framework/atreus"
+	"github.com/pandaychen/grpc-wrapper-framework/config"
 	pb "github.com/pandaychen/grpc-wrapper-framework/proto"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/grpclog"
 )
 
 var (
@@ -21,10 +23,16 @@ type xServer struct {
 func main() {
 	flag.Parse()
 
-	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", *port))
+	//init logger
+	lc := config.LogConfig{}
+	grpclog.SetLoggerV2(lc.CreateNewLogger("grpc-basic-service"))
+
+	BindAddr := fmt.Sprintf("0.0.0.0:%d", *port)
+	lis, err := net.Listen("tcp", BindAddr)
 	if err != nil {
 		panic(err)
 	}
+	grpclog.Infof("Server binding in %s...", BindAddr)
 	s := atreus.NewServer()
 	pb.RegisterGreeterServiceServer(s, &xServer{})
 	s.Serve(lis)

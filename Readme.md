@@ -24,7 +24,7 @@
 		*	贯穿一个 RPC 生命周期的 requestid
 	*	通用的 zap-Logger
 		*	按照请求记录日志，关联到 ctx
-		*	zap包+ctx关联的日志输出
+		*	zap 包 + ctx 关联的日志输出
 	*	限流算法
 		*	令牌桶
 		*	漏桶
@@ -32,7 +32,9 @@
 -	支持 jaeger/zipkin 链路追踪
 -	支持动态配置更新（远程和本地）
 -	支持内置健康检查服务
--	gRPC 网关
+-	gRPC 封装
+	*	客户端的封装，包括拦截器 chain、tls、keepalive、服务发现、熔断器、负载均衡算法等
+	*	服务端的封装，包括拦截器 chain、tls、keepalive、链路追踪、服务注册等
 
 
 grpc 开启的参数：
