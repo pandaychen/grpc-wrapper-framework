@@ -1,6 +1,7 @@
 package atreus
 
 import (
+	"github.com/pandaychen/grpc-wrapper-framework/config"
 	"github.com/pandaychen/grpc-wrapper-framework/pkg/xtime"
 )
 
@@ -20,10 +21,10 @@ type AtreusServerConfig struct {
 	TLSCaCert string `json:"tls_ca_cert"`
 
 	//register
-	RegisterType      string `json:"reg_type"`
-	RegisterEndpoints string `json:"reg_endpoint"`
-	RegisterTTL       string `json:"reg_ttl"`
-	RegisterAPIOn     bool   `json:"reg_api_on"`
+	RegisterType      string         `json:"reg_type"`
+	RegisterEndpoints string         `json:"reg_endpoint"`
+	RegisterTTL       xtime.Duration `json:"reg_ttl"`
+	RegisterAPIOn     bool           `json:"reg_api_on"`
 }
 
 func NewAtreusServerConfig() *AtreusServerConfig {
@@ -31,6 +32,6 @@ func NewAtreusServerConfig() *AtreusServerConfig {
 	return &AtreusServerConfig{}
 }
 
-func NewAtreusServerConfig2() *AtreusServerConfig {
+func NewAtreusServerConfig2(conf *config.AtreusSvcConfig) *AtreusServerConfig {
 	return &AtreusServerConfig{}
 }
