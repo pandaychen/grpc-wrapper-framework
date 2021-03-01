@@ -18,11 +18,11 @@ type LogConfig struct {
 
 func InitLumberjack() *lumberjack.Logger {
 	hook := lumberjack.Logger{
-		Filename:   "../log/default.log", // 日志文件路径
-		MaxSize:    512,                  // 每个日志文件保存的最大尺寸 单位：M
-		MaxBackups: 30,                   // 日志文件最多保存多少个备份
-		MaxAge:     7,                    // 文件最多保存多少天
-		Compress:   true,                 // 是否压缩
+		Filename:   "../log/atreus_service.log", // 日志文件路径
+		MaxSize:    512,                         // 每个日志文件保存的最大尺寸 单位：M
+		MaxBackups: 30,                          // 日志文件最多保存多少个备份
+		MaxAge:     7,                           // 文件最多保存多少天
+		Compress:   true,                        // 是否压缩
 	}
 	return &hook
 }

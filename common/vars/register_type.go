@@ -1,0 +1,7 @@
+package vars
+
+const (
+	SERVICE_REGISTER_ETCD   = "ETCD"
+	SERVICE_REGISTER_CONSUL = "CONSUL"
+	SERVICE_REGISTER_DNS    = "DNS"
+)
