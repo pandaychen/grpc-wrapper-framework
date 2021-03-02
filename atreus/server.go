@@ -9,7 +9,13 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
+	zaplog "github.com/pandaychen/goes-wrapper/zaplog"
 	"github.com/pandaychen/grpc-wrapper-framework/common/vars"
+	"github.com/pandaychen/grpc-wrapper-framework/config"
+)
+
+const (
+	DEFAULT_ATREUS_SERVICE_NAME = "atreus_svc"
 )
 
 //grpc-server核心结构（封装）
@@ -24,10 +30,24 @@ type Server struct {
 	InnerHandlers []grpc.UnaryServerInterceptor //拦截器数组
 }
 
-func NewServer() *grpc.Server {
-	var opt []grpc.ServerOption
-	opt = append(opt, grpc.UnaryInterceptor(AtreusUnaryInterceptorChain(Recovery, Middle, Timing, Middle)))
-	//return grpc.NewServer(grpc.UnaryInterceptor(UnaryInterceptorChain(Recovery, Logging)))
+func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
+	if conf == nil {
+		panic("atreus config null")
+	}
+	/*
+		var opt []grpc.ServerOption
+		opt = append(opt, grpc.UnaryInterceptor(AtreusUnaryInterceptorChain(Recovery, Middle, Timing, Middle)))
+		//return grpc.NewServer(grpc.UnaryInterceptor(UnaryInterceptorChain(Recovery, Logging)))
+	*/
+
+	logger, _ := zaplog.ZapLoggerInit(DEFAULT_ATREUS_SERVICE_NAME)
+	srv := &Server{
+		Logger: logger,
+		Lock:   new(sync.RWMutex),
+		//InnerHandlers: make([]grpc.UnaryServerInterceptor, 0),
+		Conf: NewAtreusServerConfig2(conf),
+	}
+
 	return grpc.NewServer(opt...)
 }
 
@@ -40,6 +60,7 @@ func (s *Server) Server() *grpc.Server {
 func (s *Server) Use(handlers ...grpc.UnaryServerInterceptor) *Server {
 	new_size := len(s.InnerHandlers) + len(handlers)
 	if new_size >= int(vars.ATREUS_MAX_INTERCEPTOR_NUM) {
+		//限制拦截器的使用上限
 		panic("too many interceptors")
 	}
 	mergedHandlers := make([]grpc.UnaryServerInterceptor, new_size)
