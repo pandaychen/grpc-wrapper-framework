@@ -1,6 +1,6 @@
 package k8s
 
-//change ENV to struct
+//Parse containers ENV to Struct
 
 import (
 	"fmt"
@@ -39,7 +39,7 @@ func FillConfig(v interface{}) error {
 func (e *Env) Fill(v interface{}) error {
 	ind := reflect.Indirect(reflect.ValueOf(v))
 	if reflect.ValueOf(v).Kind() != reflect.Ptr || ind.Kind() != reflect.Struct {
-		return fmt.Errorf("only the pointer to a struct is supported")
+		return fmt.Errorf("Only Pointer To a Struct is Supported")
 	}
 
 	prefix := strings.ToUpper(ind.Type().Name())

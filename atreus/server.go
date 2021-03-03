@@ -4,13 +4,14 @@ package atreus
 
 import (
 	"sync"
+	"time"
 
 	etcdv3 "go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 
 	zaplog "github.com/pandaychen/goes-wrapper/zaplog"
-	"github.com/pandaychen/grpc-wrapper-framework/common/vars"
 	"github.com/pandaychen/grpc-wrapper-framework/config"
 )
 
@@ -28,6 +29,8 @@ type Server struct {
 	RpcServer     *grpc.Server //原生Server
 	EtcdClient    *etcdv3.Client
 	InnerHandlers []grpc.UnaryServerInterceptor //拦截器数组
+
+	IsDebug bool
 }
 
 func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
@@ -48,28 +51,28 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		Conf: NewAtreusServerConfig2(conf),
 	}
 
-	return grpc.NewServer(opt...)
+	//初始化gRPC-Server的keepalive参数
+	keepaliveopts := grpc.KeepaliveParams(keepalive.ServerParameters{
+		MaxConnectionIdle: time.Duration(srv.Conf.IdleTimeout), //如果一个client空闲超过MaxConnectionIdle-s,发送一个GOAWAY,为了防止同一时间发送大量GOAWAY
+		//假设MaxConnectionIdle=15s，那么会在15s时间间隔上下浮动MaxConnectionIdle*10%,即15+1.5或者15-1.5
+		MaxConnectionAgeGrace: time.Duration(srv.Conf.ForceCloseWait),    //在强制关闭连接之间,允许有ForceCloseWait-s的时间完成pending的rpc请求
+		Time:                  time.Duration(srv.Conf.KeepAliveInterval), //如果一个clinet空闲超过KeepAliveInterval-s,则发送一个ping请求
+		Timeout:               time.Duration(srv.Conf.KeepAliveTimeout),  //如果ping请求KeepAliveTimeout-s内未收到回复,则认为该连接已断开
+		MaxConnectionAge:      time.Duration(srv.Conf.MaxLifeTime),       //如果任意连接存活时间超过MaxLifeTime-s,发送一个GOAWAY
+	})
+
+	opt = append(opt, keepaliveopts, grpc.UnaryInterceptor(srv.InnerHandlers))
+
+	srv.RpcServer = grpc.NewServer(opt...)
+
+	//Fill the interceptors
+
+	srv.Use(s.Recovery())
+
+	return srv
 }
 
 // Server return the grpc server for registering service.
 func (s *Server) Server() *grpc.Server {
 	return s.RpcServer
-}
-
-// Use attachs a global inteceptor to the server
-func (s *Server) Use(handlers ...grpc.UnaryServerInterceptor) *Server {
-	new_size := len(s.InnerHandlers) + len(handlers)
-	if new_size >= int(vars.ATREUS_MAX_INTERCEPTOR_NUM) {
-		//限制拦截器的使用上限
-		panic("too many interceptors")
-	}
-	mergedHandlers := make([]grpc.UnaryServerInterceptor, new_size)
-
-	//warning: Should keep interceptors order
-	copy(mergedHandlers, s.InnerHandlers)
-
-	//copy new handles
-	copy(mergedHandlers[len(s.InnerHandlers):], handlers)
-	s.InnerHandlers = mergedHandlers
-	return s
 }
