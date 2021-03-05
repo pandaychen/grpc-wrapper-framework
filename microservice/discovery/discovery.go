@@ -5,8 +5,8 @@ import (
 
 	etcdv3 "github.com/pandaychen/etcd_tools"
 	"github.com/pandaychen/grpc-wrapper-framework/common/enums"
-	_ "github.com/pandaychen/grpc-wrapper-framework/discovery/common"
-	"github.com/pandaychen/grpc-wrapper-framework/discovery/etcdv3"
+	_ "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
+	"github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/etcdv3"
 )
 
 type ServiceRegisterWrapper interface {

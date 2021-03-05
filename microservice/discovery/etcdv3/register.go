@@ -5,7 +5,7 @@ package etcdv3
 import (
 	"time"
 
-	_ "github.com/pandaychen/grpc-wrapper-framework/discovery/common"
+	_ "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )

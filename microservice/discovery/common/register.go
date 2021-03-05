@@ -5,7 +5,7 @@ import (
 
 	etcdv3 "github.com/pandaychen/etcd_tools"
 	"github.com/pandaychen/grpc-wrapper-framework/common/enums"
-	"github.com/pandaychen/grpc-wrapper-framework/discovery/etcdv3"
+	"github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/etcdv3"
 	"google.golang.org/grpc/metadata"
 )
 
