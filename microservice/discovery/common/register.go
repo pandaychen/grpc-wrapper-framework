@@ -3,7 +3,7 @@ package common
 import (
 	"time"
 
-	etcdv3 "github.com/pandaychen/etcd_tools"
+	//etcdv3 "github.com/pandaychen/etcd_tools"
 	"github.com/pandaychen/grpc-wrapper-framework/common/enums"
 
 	"google.golang.org/grpc/metadata"
@@ -25,8 +25,8 @@ type RegisterConfig struct {
 	RandomSuffix   string
 	Info           ServiceBasicInfo
 	Ttl            time.Duration
-	Logger         *zap.Logger
 
+	Endpoint string
 	//ETCD config
-	EtcdConfig *etcdv3.EtcdConfig
+	//EtcdConfig *etcdv3.EtcdConfig
 }

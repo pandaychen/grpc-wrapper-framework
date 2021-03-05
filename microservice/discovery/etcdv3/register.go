@@ -25,7 +25,7 @@ type EtcdRegister struct {
 	Cancel context.CancelFunc
 }
 
-func NewRegister(config com.RegisterConfig) (*EtcdRegister, error) {
+func NewRegister(config *com.RegisterConfig) (EtcdRegister, error) {
 	/*
 		client, err := etcdv3.New(config.EtcdConfig)
 		if err != nil {

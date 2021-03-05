@@ -5,7 +5,7 @@ import (
 
 	etcdv3 "github.com/pandaychen/etcd_tools"
 	"github.com/pandaychen/grpc-wrapper-framework/common/enums"
-	_ "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
+	com "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
 	"github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/etcdv3"
 )
 
@@ -15,7 +15,7 @@ type ServiceRegisterWrapper interface {
 	Close()
 }
 
-func NewDiscoveryRegister(conf *RegisterConfig) (*ServiceRegisterWrapper, error) {
+func NewDiscoveryRegister(conf *com.RegisterConfig) (ServiceRegisterWrapper, error) {
 	switch conf.RegisterType {
 	case enums.REG_TYPE_ETCD:
 		return etcdv3.NewRegister(conf)

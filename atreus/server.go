@@ -14,6 +14,9 @@ import (
 
 	zaplog "github.com/pandaychen/goes-wrapper/zaplog"
 	"github.com/pandaychen/grpc-wrapper-framework/config"
+	"github.com/pandaychen/grpc-wrapper-framework/pkg/xrand"
+
+	dis "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery"
 )
 
 const (
@@ -70,7 +73,17 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 
 	srv.Use(s.Recovery())
 
-	srv.ServiceReg, _ = dis.NewDiscoveryRegister(nil)
+	srv.ServiceReg, _ = dis.NewDiscoveryRegister(&com.RegisterConfig{
+		RegisterType:   enums.RegType(conf.RegisterType),
+		RootName:       conf.RegisterRootPath,
+		ServiceName:    conf.RegisterService,
+		ServiceVersion: conf.RegisterServiceVer,
+		//ServiceNodeID  string //node-name
+		RandomSuffix: xrand.RandomString(8),
+		//	Info           :
+		Ttl:      conf.RegisterTTL,
+		Endpoint: conf.RegisterEndpoints,
+	})
 
 	return srv
 }

@@ -22,15 +22,21 @@ type AtreusSvcConfig struct {
 	TLSCaCert string `json:"tls_ca_cert"`
 
 	//Service Register
-	RegisterType      string        `json:"reg_type"`
-	RegisterEndpoints string        `json:"reg_endpoint"`
-	RegisterTTL       time.Duration `json:"reg_ttl"`
-	RegisterAPIOn     bool          `json:"reg_api_on"`
+	RegisterType        string        `json:"reg_type"`
+	RegisterEndpoints   string        `json:"reg_endpoint"`
+	RegisterTTL         time.Duration `json:"reg_ttl"`
+	RegisterAPIOn       bool          `json:"reg_api_on"`
+	RegisterRootPath    string        `json:"reg_root_path"`
+	RegisterService     string        `json:"reg_service_name"`
+	RegisterServiceVer  string        `json:"reg_service_version"`
+	RegisterServiceAddr string        `json:"reg_service_addr"`
 
 	//Limiter
 	LimiterType string `json:"limiter_type"`
 	LimiterRate int    `json:"limiter_rate"`
 	LimiterSize int    `json:"limiter_size"`
+
+	EtcdConfig
 }
 
 //global
@@ -68,6 +74,11 @@ func AtreusSvcConfigInit() {
 	atreus_svc_config.RegisterEndpoints = SubconfigServer.MustString("reg_endpoint", "http://127.0.0.1:2379")
 	atreus_svc_config.RegisterTTL = SubconfigServer.MustDuration("reg_ttl", 10*time.Second)
 	atreus_svc_config.RegisterAPIOn = SubconfigServer.MustBool("reg_api_on", false)
+	atreus_svc_config.RegisterRootPath = SubconfigServer.MustString("reg_root_path", "/")
+	atreus_svc_config.RegisterService = SubconfigServer.MustString("reg_service_name", "test")
+	atreus_svc_config.RegisterServiceVer = SubconfigServer.MustString("reg_service_version", "v1.0")
+	atreus_svc_config.RegisterServiceAddr = SubconfigServer.MustString("reg_service_addr", atreus_svc_config.Addr)
+
 	atreus_svc_config.LimiterType = SubconfigServer.GetString("limiter_type")
 	atreus_svc_config.LimiterRate = SubconfigServer.GetInt("limiter_rate")
 	atreus_svc_config.LimiterSize = SubconfigServer.GetInt("limiter_size")

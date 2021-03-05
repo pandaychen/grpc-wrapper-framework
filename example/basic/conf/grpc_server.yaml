@@ -1,6 +1,7 @@
 atreus:
   server:
     address: "0.0.0.0:12345"
+    keepalive: false
     timeout: 20s
     idle_timeout: 20s
     max_life: 20s
@@ -18,6 +19,15 @@ atreus:
     reg_ttl: 10s
     reg_api_on: false
     reg_root_path: "/atreus"
+    etcd_on: true #from https://github.com/pandaychen/etcd_tools/blob/master/config.go
+    etcd_endpoint: "http://127.0.0.1:2379"
+    ttl: 10s
+    reg_api_on: false
+    reg_root_path: "/"
+    reg_service_name: "test"
+    reg_service_version: "v1.0"
+    reg_service_addr: "127.0.0.1:12345"
+
   limiter:
     type: "token" ###令牌桶token/漏桶leaky
     rate: 10
