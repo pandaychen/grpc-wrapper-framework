@@ -35,25 +35,29 @@ func NewAtreusServerConfig() *AtreusServerConfig {
 
 //validate and generate svc config
 func NewAtreusServerConfig2(conf *config.AtreusSvcConfig) *AtreusServerConfig {
-	config := &AtreusServerConfig{
-		Addr:              conf.Addr,
-		Timeout:           xtime.Duration(config.Timeout),
-		IdleTimeout:       xtime.Duration(conf.IdleTimeout),
-		MaxLifeTime:       conf.MaxLifeTime,
-		ForceCloseWait:    conf.ForceCloseWait,
-		KeepAliveInterval: conf.KeepAliveInterval,
-		KeepAliveTimeout:  conf.KeepAliveTimeout,
-		TLSon:             conf.TLSon,
-		TLSCert:           conf.TLSCert,
-		TLSKey:            conf.TLSKey,
-		TLSCaCert:         conf.TLSCaCert,
-		RegisterType:      conf.RegisterType,
-		RegisterEndpoints: conf.RegisterEndpoints,
-		RegisterTTL:       conf.RegisterTTL,
-		RegisterAPIOn:     conf.RegisterAPIOn,
-	}
+	if config == nil {
+		return
+	} else {
+		config := &AtreusServerConfig{
+			Addr:              conf.Addr,
+			Timeout:           xtime.Duration(config.Timeout),
+			IdleTimeout:       xtime.Duration(conf.IdleTimeout),
+			MaxLifeTime:       conf.MaxLifeTime,
+			ForceCloseWait:    conf.ForceCloseWait,
+			KeepAliveInterval: conf.KeepAliveInterval,
+			KeepAliveTimeout:  conf.KeepAliveTimeout,
+			TLSon:             conf.TLSon,
+			TLSCert:           conf.TLSCert,
+			TLSKey:            conf.TLSKey,
+			TLSCaCert:         conf.TLSCaCert,
+			RegisterType:      conf.RegisterType,
+			RegisterEndpoints: conf.RegisterEndpoints,
+			RegisterTTL:       conf.RegisterTTL,
+			RegisterAPIOn:     conf.RegisterAPIOn,
+		}
 
-	return config
+		return config
+	}
 }
 
 // 构建K8S-ENV配置

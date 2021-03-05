@@ -3,6 +3,7 @@ package atreus
 //A wrapper grpc-server
 
 import (
+	"net"
 	"sync"
 	"time"
 
@@ -29,13 +30,13 @@ type Server struct {
 	RpcServer     *grpc.Server //原生Server
 	EtcdClient    *etcdv3.Client
 	InnerHandlers []grpc.UnaryServerInterceptor //拦截器数组
-
-	IsDebug bool
+	ServiceReg    dis.ServiceRegisterWrapper
+	IsDebug       bool
 }
 
 func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 	if conf == nil {
-		panic("atreus config null")
+		//panic("atreus config null")
 	}
 	/*
 		var opt []grpc.ServerOption
@@ -61,7 +62,7 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		MaxConnectionAge:      time.Duration(srv.Conf.MaxLifeTime),       //如果任意连接存活时间超过MaxLifeTime-s,发送一个GOAWAY
 	})
 
-	opt = append(opt, keepaliveopts, grpc.UnaryInterceptor(srv.InnerHandlers))
+	opt = append(opt, keepaliveopts, grpc.UnaryInterceptor(srv.BuildUnaryInterceptorChain2))
 
 	srv.RpcServer = grpc.NewServer(opt...)
 
@@ -69,10 +70,16 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 
 	srv.Use(s.Recovery())
 
+	srv.ServiceReg, _ = dis.NewDiscoveryRegister(nil)
+
 	return srv
 }
 
 // Server return the grpc server for registering service.
-func (s *Server) Server() *grpc.Server {
+func (s *Server) GetServer() *grpc.Server {
 	return s.RpcServer
+}
+
+func (s *Server) Serve(lis net.Listener) error {
+	return s.RpcServer.Serve(lis)
 }

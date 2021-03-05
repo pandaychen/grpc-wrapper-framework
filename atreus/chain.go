@@ -4,6 +4,7 @@ package atreus
 //参考：https://github.com/grpc-ecosystem/go-grpc-middleware/blob/master/chain.go
 
 import (
+	"github.com/pandaychen/grpc-wrapper-framework/common/vars"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"

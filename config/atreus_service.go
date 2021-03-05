@@ -7,6 +7,7 @@ import (
 
 type AtreusSvcConfig struct {
 	Addr              string        `json:"address"`
+	Keepalive         bool          `json:"keepalive"`
 	Timeout           time.Duration `json:"timeout"`
 	IdleTimeout       time.Duration `json:"idle_timeout"`
 	MaxLifeTime       time.Duration `json:"max_life"`
@@ -20,11 +21,16 @@ type AtreusSvcConfig struct {
 	TLSKey    string `json:"tls_key"`
 	TLSCaCert string `json:"tls_ca_cert"`
 
-	//register
+	//Service Register
 	RegisterType      string        `json:"reg_type"`
 	RegisterEndpoints string        `json:"reg_endpoint"`
 	RegisterTTL       time.Duration `json:"reg_ttl"`
 	RegisterAPIOn     bool          `json:"reg_api_on"`
+
+	//Limiter
+	LimiterType string `json:"limiter_type"`
+	LimiterRate int    `json:"limiter_rate"`
+	LimiterSize int    `json:"limiter_size"`
 }
 
 //global
@@ -47,7 +53,24 @@ func AtreusSvcConfigInit() {
 	}
 
 	atreus_svc_config.Addr = SubconfigServer.GetString("address")
+	atreus_svc_config.Keepalive = SubconfigServer.MustBool("keepalive", false)
 	atreus_svc_config.Timeout = SubconfigServer.MustDuration("timeout", time.Second*10)
+	atreus_svc_config.IdleTimeout = SubconfigServer.MustDuration("idle_timeout", time.Second*10)
+	atreus_svc_config.MaxLifeTime = SubconfigServer.MustDuration("max_life", time.Second*10)
+	atreus_svc_config.ForceCloseWait = SubconfigServer.MustDuration("close_wait", time.Second*10)
+	atreus_svc_config.KeepAliveInterval = SubconfigServer.MustDuration("keepalive_interval", time.Second*10)
+	atreus_svc_config.KeepAliveTimeout = SubconfigServer.MustDuration("keepalive_timeout", time.Second*10)
+	atreus_svc_config.TLSon = SubconfigServer.MustBool("tls_on", false)
+	atreus_svc_config.TLSCert = SubconfigServer.GetString("tls_cert")
+	atreus_svc_config.TLSKey = SubconfigServer.GetString("tls_key")
+	atreus_svc_config.TLSCaCert = SubconfigServer.GetString("tls_ca_cert")
+	atreus_svc_config.RegisterType = SubconfigServer.MustString("reg_type", "etcd")
+	atreus_svc_config.RegisterEndpoints = SubconfigServer.MustString("reg_endpoint", "http://127.0.0.1:2379")
+	atreus_svc_config.RegisterTTL = SubconfigServer.MustDuration("reg_ttl", 10*time.Second)
+	atreus_svc_config.RegisterAPIOn = SubconfigServer.MustBool("reg_api_on", false)
+	atreus_svc_config.LimiterType = SubconfigServer.GetString("limiter_type")
+	atreus_svc_config.LimiterRate = SubconfigServer.GetInt("limiter_rate")
+	atreus_svc_config.LimiterSize = SubconfigServer.GetInt("limiter_size")
 }
 
 /*

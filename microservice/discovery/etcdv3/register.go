@@ -5,7 +5,7 @@ package etcdv3
 import (
 	"time"
 
-	_ "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
+	com "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
@@ -25,7 +25,7 @@ type EtcdRegister struct {
 	Cancel context.CancelFunc
 }
 
-func NewRegister(config RegisterConfig) (*EtcdRegister, error) {
+func NewRegister(config com.RegisterConfig) (*EtcdRegister, error) {
 	/*
 		client, err := etcdv3.New(config.EtcdConfig)
 		if err != nil {
@@ -52,7 +52,19 @@ func NewRegister(config RegisterConfig) (*EtcdRegister, error) {
 		}
 		return registry, nil
 	*/
-	return nil, err
+	return nil, nil
+}
+
+func (r *EtcdRegister) ServiceRegister() error {
+	return nil
+}
+
+func (r *EtcdRegister) ServiceUnRegister() error {
+
+	return nil
+}
+func (r *EtcdRegister) Close() {
+	return
 }
 
 /*
