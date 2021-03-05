@@ -1,12 +1,12 @@
 atreus:
-  server: 
+  server:
     address: "0.0.0.0:12345"
     timeout: 20s
     idle_timeout: 20s
     max_life: 20s
     close_wait: 20s
     keepalive_interval: 20s
-    keepalive_timeout : 20s
+    keepalive_timeout: 20s
   security:
     tls_on: true
     tls_cert: "../pem/server.crt"
@@ -17,17 +17,26 @@ atreus:
     reg_endpoint: "http://127.0.0.1:2379"
     reg_ttl: 10s
     reg_api_on: false
+    reg_root_path: "/atreus"
+  limiter:
+    type: "token" ###令牌桶token/漏桶leaky
+    rate: 10
+    bucketsize: 100
+
+atreus_client:
+  client:
+    timeout: 20s
 
 log:
-  path: "./log" 
-  level: "debug" 
-  maxSize: 128 
-  maxBackups: 10 
-  maxAge: 7 
+  path: "./log"
+  level: "debug"
+  maxSize: 128
+  maxBackups: 10
+  maxAge: 7
   compress: true
   showConsole: true
 
-mysql: 
+mysql:
   default:
     maxIdleConns: 20
     maxOpenConns: 120
