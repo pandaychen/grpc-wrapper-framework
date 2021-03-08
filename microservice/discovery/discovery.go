@@ -12,7 +12,6 @@ import (
 type ServiceRegisterWrapper interface {
 	ServiceRegister() error
 	ServiceUnRegister() error
-	Close()
 }
 
 func NewDiscoveryRegister(conf *com.RegisterConfig) (ServiceRegisterWrapper, error) {
