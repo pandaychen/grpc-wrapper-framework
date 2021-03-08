@@ -83,6 +83,7 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		//	Info           :
 		Ttl:      conf.RegisterTTL,
 		Endpoint: conf.RegisterEndpoints,
+		Logger:   logger,
 	})
 
 	return srv

@@ -3,7 +3,7 @@ package discovery
 import (
 	"errors"
 
-	etcdv3 "github.com/pandaychen/etcd_tools"
+	//etcdv3 "github.com/pandaychen/etcd_tools"
 	"github.com/pandaychen/grpc-wrapper-framework/common/enums"
 	com "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
 	"github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/etcdv3"
