@@ -13,7 +13,9 @@ import (
 	"google.golang.org/grpc/keepalive"
 
 	zaplog "github.com/pandaychen/goes-wrapper/zaplog"
+	"github.com/pandaychen/grpc-wrapper-framework/common/enums"
 	"github.com/pandaychen/grpc-wrapper-framework/config"
+	com "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
 	"github.com/pandaychen/grpc-wrapper-framework/pkg/xrand"
 
 	dis "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery"
@@ -71,7 +73,7 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 
 	//Fill the interceptors
 
-	srv.Use(s.Recovery())
+	srv.Use(srv.Recovery())
 
 	srv.ServiceReg, _ = dis.NewDiscoveryRegister(&com.RegisterConfig{
 		RegisterType:   enums.RegType(conf.RegisterType),
@@ -79,7 +81,7 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		ServiceName:    conf.RegisterService,
 		ServiceVersion: conf.RegisterServiceVer,
 		//ServiceNodeID  string //node-name
-		RandomSuffix: xrand.RandomString(8),
+		RandomSuffix: string(xrand.RandomString(8)),
 		//	Info           :
 		Ttl:      conf.RegisterTTL,
 		Endpoint: conf.RegisterEndpoints,

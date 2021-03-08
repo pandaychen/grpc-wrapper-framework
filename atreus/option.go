@@ -41,7 +41,7 @@ func NewAtreusServerConfig() *AtreusServerConfig {
 
 //validate and generate svc config
 func NewAtreusServerConfig2(conf *config.AtreusSvcConfig) *AtreusServerConfig {
-	if config == nil {
+	if conf == nil {
 		return
 	} else {
 		config := &AtreusServerConfig{

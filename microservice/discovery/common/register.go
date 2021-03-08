@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	//etcdv3 "github.com/pandaychen/etcd_tools"
@@ -33,6 +34,11 @@ type RegisterConfig struct {
 	Logger *zap.Logger
 }
 
+//
 func (c *RegisterConfig) BuildEtcdKey() string {
-	return fmt.Sprintf("/%s/%s/%s/%s", c.RootName, c.ServiceName, c.ServiceVersion, c.ServiceNodeID)
+	if strings.HasPrefix(c.RootName, "/") {
+		return fmt.Sprintf("%s/%s/%s/%s", c.RootName, c.ServiceName, c.ServiceVersion, c.ServiceNodeID)
+	} else {
+		return fmt.Sprintf("/%s/%s/%s/%s", c.RootName, c.ServiceName, c.ServiceVersion, c.ServiceNodeID)
+	}
 }
