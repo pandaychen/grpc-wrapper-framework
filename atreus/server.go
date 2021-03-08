@@ -3,6 +3,7 @@ package atreus
 //A wrapper grpc-server
 
 import (
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -77,7 +78,7 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 
 	srv.Use(srv.Recovery())
 
-	nodeinfo := com.NodeData{
+	nodeinfo := com.ServiceBasicInfo{
 		AddressInfo: conf.Addr,
 		Metadata:    metadata.Pairs(vars.SERVICE_WEIGHT_KEY, conf.InitWeight),
 	}
@@ -87,12 +88,12 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		RootName:       conf.RegisterRootPath,
 		ServiceName:    conf.RegisterService,
 		ServiceVersion: conf.RegisterServiceVer,
-		ServiceNodeID  : fmt.Sprintf("addr%s",conf.Addr)
-		RandomSuffix: string(xrand.RandomString(8)),
-		Ttl:          conf.RegisterTTL,
-		Endpoint:     conf.RegisterEndpoints,
-		Logger:       logger,
-		NodeData:     nodeinfo,
+		ServiceNodeID:  fmt.Sprintf("addr%s", conf.Addr),
+		RandomSuffix:   string(xrand.RandomString(8)),
+		Ttl:            conf.RegisterTTL,
+		Endpoint:       conf.RegisterEndpoints,
+		Logger:         logger,
+		NodeData:       nodeinfo,
 	})
 
 	if err == nil {
