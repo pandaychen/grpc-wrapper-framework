@@ -5,7 +5,10 @@ package etcdv3
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
+
+	"go.etcd.io/etcd/etcdserver/api/v3rpc/rpctypes"
 
 	com "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
 	etcd3 "go.etcd.io/etcd/clientv3"
@@ -28,7 +31,7 @@ type EtcdRegister struct {
 func NewRegister(config *com.RegisterConfig) (*EtcdRegister, error) {
 	//TODO：use https://github.com/pandaychen/etcd_tools/blob/master/clientv3.go instead
 	etcdConfg := etcd3.Config{
-		Endpoints: config.Endpoint,
+		Endpoints: strings.Split(config.Endpoint, ";"),
 	}
 
 	client, err := etcd3.New(etcdConfg)
@@ -123,7 +126,7 @@ func (r *EtcdRegister) ServiceRegister() error {
 				KeepAliveFunc()
 			case <-r.Ctx.Done():
 				ticker.Stop() //shutdown timer
-		return if _, err := r.Etcd3Client.Delete(context.Background(), r.Key); err != nil {
+				if _, err := r.Etcd3Client.Delete(context.Background(), r.Key); err != nil {
 					r.Logger.Error("[ServiceRegister]Unregister  error", zap.String("key", r.Key), zap.String("errmsg", err.Error()))
 					return err
 				}

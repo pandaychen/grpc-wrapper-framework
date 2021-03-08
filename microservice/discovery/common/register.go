@@ -25,7 +25,7 @@ type RegisterConfig struct {
 	ServiceVersion string //version
 	ServiceNodeID  string //node-name (IP:ADDR)
 	RandomSuffix   string
-	Info           ServiceBasicInfo
+	NodeData       ServiceBasicInfo
 	Ttl            time.Duration
 
 	Endpoint string

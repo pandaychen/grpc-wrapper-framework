@@ -15,6 +15,7 @@ type AtreusServerConfig struct {
 	ForceCloseWait    xtime.Duration `json:"close_wait"`
 	KeepAliveInterval xtime.Duration `json:"keepalive_interval"`
 	KeepAliveTimeout  xtime.Duration `json:"keepalive_timeout"`
+	InitWeight        string         `json:"init_weight"`
 
 	//TLS config
 	TLSon     bool   `json:"tls_on"`
@@ -42,7 +43,7 @@ func NewAtreusServerConfig() *AtreusServerConfig {
 //validate and generate svc config
 func NewAtreusServerConfig2(conf *config.AtreusSvcConfig) *AtreusServerConfig {
 	if conf == nil {
-		return
+		return nil
 	} else {
 		config := &AtreusServerConfig{
 			Addr:                conf.Addr,

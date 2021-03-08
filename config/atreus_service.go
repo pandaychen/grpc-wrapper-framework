@@ -14,6 +14,7 @@ type AtreusSvcConfig struct {
 	ForceCloseWait    time.Duration `json:"close_wait"`
 	KeepAliveInterval time.Duration `json:"keepalive_interval"`
 	KeepAliveTimeout  time.Duration `json:"keepalive_timeout"`
+	InitWeight        string        `json:"init_weight"`
 
 	//TLS config
 	TLSon     bool   `json:"tls_on"`

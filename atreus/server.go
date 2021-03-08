@@ -11,9 +11,11 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/metadata"
 
 	zaplog "github.com/pandaychen/goes-wrapper/zaplog"
 	"github.com/pandaychen/grpc-wrapper-framework/common/enums"
+	"github.com/pandaychen/grpc-wrapper-framework/common/vars"
 	"github.com/pandaychen/grpc-wrapper-framework/config"
 	com "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
 	"github.com/pandaychen/grpc-wrapper-framework/pkg/xrand"
@@ -75,18 +77,34 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 
 	srv.Use(srv.Recovery())
 
-	srv.ServiceReg, _ = dis.NewDiscoveryRegister(&com.RegisterConfig{
+	nodeinfo := com.NodeData{
+		AddressInfo: conf.Addr,
+		Metadata:    metadata.Pairs(vars.SERVICE_WEIGHT_KEY, conf.InitWeight),
+	}
+
+	srv.ServiceReg, err = dis.NewDiscoveryRegister(&com.RegisterConfig{
 		RegisterType:   enums.RegType(conf.RegisterType),
 		RootName:       conf.RegisterRootPath,
 		ServiceName:    conf.RegisterService,
 		ServiceVersion: conf.RegisterServiceVer,
-		//ServiceNodeID  string //node-name
+		ServiceNodeID  : fmt.Sprintf("addr%s",conf.Addr)
 		RandomSuffix: string(xrand.RandomString(8)),
-		//	Info           :
-		Ttl:      conf.RegisterTTL,
-		Endpoint: conf.RegisterEndpoints,
-		Logger:   logger,
+		Ttl:          conf.RegisterTTL,
+		Endpoint:     conf.RegisterEndpoints,
+		Logger:       logger,
+		NodeData:     nodeinfo,
 	})
+
+	if err == nil {
+		err = srv.ServiceReg.ServiceRegister()
+		if err != nil {
+			logger.Error("[NewServer]ServiceRegister error", zap.String("errmsg", err.Error()))
+			return nil
+		}
+	} else {
+		logger.Error("[NewServer]NewDiscoveryRegister error", zap.String("errmsg", err.Error()))
+		return nil
+	}
 
 	return srv
 }
