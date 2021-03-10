@@ -22,3 +22,12 @@ func NewDiscoveryRegister(conf *com.RegisterConfig) (ServiceRegisterWrapper, err
 		return nil, errors.New("not support register method")
 	}
 }
+
+func NewDiscoveryResolver() interface{} {
+	switch conf.RegisterType {
+	case enums.REG_TYPE_ETCD:
+		return etcdv3.NewRegister(conf)
+	default:
+		return nil, errors.New("not support register method")
+	}
+}

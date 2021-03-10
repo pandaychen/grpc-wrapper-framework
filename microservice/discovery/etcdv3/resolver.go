@@ -1,0 +1,101 @@
+package etcdv3
+
+import (
+	"sync"
+	//"log"
+	"fmt"
+
+	etcd3 "go.etcd.io/etcd/clientv3"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/resolver"
+)
+
+// Default shchme
+const (
+	etcdScheme = "etcdv3"
+)
+
+type EtcdResolver struct {
+	scheme        string
+	EtcdConfig    etcdv3.Config
+	EtcdCli       *etcd3.Client // etcd3 client
+	EtcdWatchPath string
+	Watcher       *EtcdWatcher
+	Clientconn    resolver.ClientConn
+	Wg            sync.WaitGroup
+	CloseCh       chan struct{} // 关闭 channel
+	Logger        *zap.Logger
+}
+
+// 共性key的共同前缀
+type EtcdKeyDirPath struct {
+	RootName       string //root-name
+	ServiceName    string //service-name
+	ServiceType    enums.ServiceType
+	ServiceVersion string //version
+}
+
+func GetCommonEtcdKeyPath(config EtcdKeyDirPath) string {
+	return fmt.Sprintf("/%s/%s/%s", config.RootName, config.ServiceName, config.ServiceVersion)
+}
+
+// Build returns itself for resolver, because it's both a builder and a resolver.
+func (r *EtcdResolver) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOption) (resolver.Resolver, error) {
+	var err error
+	r.EtcdCli, err = etcdv3.New(r.EtcdConfig)
+	if err != nil {
+		r.Logger.Error("Create etcd client error", zap.String("errmsg", err.Error()))
+		return nil, err
+	}
+
+	//用来从etcd获取serverlist,并通知Clientconn更新连接池
+	r.Clientconn = cc
+
+	//创建watcher（要监听的路径+etcdclient）
+	r.Watcher = NewEtcdWatcher(r.EtcdWatchPath, r.EtcdCli, r.Logger)
+
+	//go with a new groutine，从etcd中监控最新的地址变化，并通知clientconn（r.cc.UpdateState(resolver.State{Addresses: addr})）
+	r.start()
+	return r, nil
+}
+
+// Scheme returns the scheme.
+func (r *EtcdResolver) Scheme() string {
+	return r.scheme
+}
+
+// Start Resover return a closeCh, Should call by Builde func()
+func (r *EtcdResolver) start() {
+	r.Wg.Add(1)
+	go func() {
+		defer r.Wg.Done()
+		addrlist_channel := r.Watcher.Watch()
+		for addr := range addrlist_channel {
+			//range在channel上,addr为最新的[]resolver.Address
+			r.Clientconn.UpdateState(resolver.State{Addresses: addr})
+		}
+	}()
+}
+
+// ResolveNow is a noop for resolver.
+func (r *EtcdResolver) ResolveNow(o resolver.ResolveNowOption) {
+}
+
+// Close is a noop for resolver.
+func (r *EtcdResolver) Close() {
+	r.Watcher.Close()
+	r.Wg.Wait()
+}
+
+//注册resovler--客户端
+// 包的全局方法
+func RegisterResolver(reso_scheme string, etcdConfig etcdv3.Config, config EtcdKeyDirPath, zaplog *zap.Logger) {
+	etcdresolver := &EtcdResolver{
+		scheme:        reso_scheme, //name--etcdv3
+		EtcdConfig:    etcdConfig,
+		EtcdWatchPath: GetCommonEtcdKeyPath(config),
+		Logger:        zaplog,
+	}
+	//register resovler
+	resolver.Register(etcdresolver)
+}

@@ -41,7 +41,7 @@ func (opts SummaryVecOption) Build() *SummaryVec {
 	prometheus.MustRegister(vec)
 	return &SummaryVec{
 		SummaryVecOption: &opts,
-		SummaryVec: vec,
+		SummaryVec:       vec,
 	}
 }
 

@@ -88,7 +88,7 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		RootName:       conf.RegisterRootPath,
 		ServiceName:    conf.RegisterService,
 		ServiceVersion: conf.RegisterServiceVer,
-		ServiceNodeID:  fmt.Sprintf("addr%s", conf.Addr),
+		ServiceNodeID:  fmt.Sprintf("addr#%s", conf.Addr),
 		RandomSuffix:   string(xrand.RandomString(8)),
 		Ttl:            conf.RegisterTTL,
 		Endpoint:       conf.RegisterEndpoints,
@@ -104,7 +104,7 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		}
 	} else {
 		logger.Error("[NewServer]NewDiscoveryRegister error", zap.String("errmsg", err.Error()))
-		return nil
+		panic(err)
 	}
 
 	return srv

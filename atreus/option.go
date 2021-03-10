@@ -1,6 +1,8 @@
 package atreus
 
 import (
+	"time"
+
 	"github.com/pandaychen/grpc-wrapper-framework/config"
 	"github.com/pandaychen/grpc-wrapper-framework/pkg/k8s"
 	"github.com/pandaychen/grpc-wrapper-framework/pkg/xtime"
@@ -81,4 +83,15 @@ func InitAtreusServerConfigK8S() (*AtreusServerConfig, error) {
 		return nil, err
 	}
 	return config, nil
+}
+
+type AtreusClientConfig struct {
+	Dial     time.Duration
+	Timeout  time.Duration
+	NonBlock bool //是否默认阻塞
+
+	//keepalive配置
+	KeepAliveInterval      time.Duration
+	KeepAliveTimeout       time.Duration
+	KeepAliveWithoutStream bool
 }
