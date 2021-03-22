@@ -43,6 +43,7 @@ type Server struct {
 }
 
 func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
+	var err error
 	if conf == nil {
 		//panic("atreus config null")
 	}
