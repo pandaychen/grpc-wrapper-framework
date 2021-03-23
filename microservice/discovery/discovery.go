@@ -23,10 +23,11 @@ func NewDiscoveryRegister(conf *com.RegisterConfig) (ServiceRegisterWrapper, err
 	}
 }
 
-func NewDiscoveryResolver() interface{} {
+//Create grpc resolver
+func NewDiscoveryResolver(conf *com.ResolverConfig) (interface{}, error) {
 	switch conf.RegisterType {
 	case enums.REG_TYPE_ETCD:
-		return etcdv3.NewRegister(conf)
+		return etcdv3.NewResolverRegister(conf)
 	default:
 		return nil, errors.New("not support register method")
 	}

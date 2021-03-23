@@ -5,65 +5,28 @@ import (
 	"sync"
 	"time"
 
-	etcdv3 "go.etcd.io/etcd/clientv3"
+	com "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
+	etcd3 "go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/mvcc/mvccpb"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/resolver"
 )
 
-/*
-	// from 	"google.golang.org/grpc/resolver"
-	type Address struct {
-    // Addr is the server address on which a connection will be established.
-    Addr string
-    // Type is the type of this address.
-    Type AddressType
-    // ServerName is the name of this address.
-    //
-    // e.g. if Type is GRPCLB, ServerName should be the name of the remote load
-    // balancer, not the name of the backend.
-    ServerName string
-    // Metadata is the information associated with Addr, which may be used
-    // to make load balancing decision.
-    Metadata interface{}
-}
-*/
-
-/*
-	//from https://github.com/grpc/grpc-go/blob/master/resolver/resolver.go
-	type ClientConn interface {
-	// UpdateState updates the state of the ClientConn appropriately.
-	UpdateState(State)
-	// NewAddress is called by resolver to notify ClientConn a new list
-	// of resolved addresses.
-	// The address list should be the complete list of resolved addresses.
-	//
-	// Deprecated: Use UpdateState instead.
-	NewAddress(addresses []Address)
-	// NewServiceConfig is called by resolver to notify ClientConn a new
-	// service config. The service config should be provided as a json string.
-	//
-	// Deprecated: Use UpdateState instead.
-	NewServiceConfig(serviceConfig string)
-}
-
-*/
-
 const (
-	CHANNEL_SIZE = 64
+	DEFAULT_CHANNEL_SIZE = 64
 )
 
 //独立封装watcher
 type EtcdWatcher struct {
-	Key       string
-	Client    *etcdv3.Client
-	Ctx       context.Context
+	WatchKey  string
+	Client    *etcd3.Client
+	Ctx       *context.Context
 	Cancel    context.CancelFunc
-	Wg        sync.WaitGroup
 	AddrsList []resolver.Address
-	WatchCh   etcdv3.WatchChan // watch() RETURN channel
+	WatchCh   etcd3.WatchChan // watch() RETURN channel
 	Logger    *zap.Logger
+	Wg        *sync.WaitGroup
 }
 
 func (w *EtcdWatcher) Close() {
@@ -71,14 +34,15 @@ func (w *EtcdWatcher) Close() {
 }
 
 //create a etcd watcher,which belongs to etcd resolver
-func NewEtcdWatcher(key string, etcdclient *etcdv3.Client, zaploger *zap.Logger) *EtcdWatcher {
-	ctx, cancel := context.WithCancel(context.Background())
+func NewEtcdWatcher(ctx *context.Context, key string, etcdclient *etcd3.Client, zaploger *zap.Logger, wg *sync.WaitGroup) *EtcdWatcher {
+	new_ctx, new_cancel := context.WithCancel(*ctx)
 	watcher := &EtcdWatcher{
-		Key:    key,
-		Client: etcdclient,
-		Ctx:    ctx,
-		Cancel: cancel,
-		Logger: zaploger,
+		WatchKey: key,
+		Client:   etcdclient,
+		Logger:   zaploger,
+		Ctx:      &new_ctx,
+		Cancel:   new_cancel,
+		Wg:       wg,
 	}
 	return watcher
 }
@@ -91,15 +55,15 @@ func (w *EtcdWatcher) GetAllAddresses() []resolver.Address {
 	total_addrlist := []resolver.Address{}
 
 	//get all prefix keys
-	getResp, err := w.Client.Get(ctx, w.Key, etcdv3.WithPrefix())
+	getResp, err := w.Client.Get(ctx, w.WatchKey, etcd3.WithPrefix())
 
 	if err == nil {
 		addrs := w.ExtractAddrs(getResp)
 		if len(addrs) > 0 {
 			for _, saddr := range addrs {
 				total_addrlist = append(total_addrlist, resolver.Address{
-					Addr:     saddr.AddrInfo,  // Addr 和grpc的resolver中的结构体格式保持一致
-					Metadata: &saddr.Metadata, // Metadata is the information associated with Addr, which may be used
+					Addr:     saddr.AddressInfo, // Addr 和grpc的resolver中的结构体格式保持一致
+					Metadata: &saddr.Metadata,   // Metadata is the information associated with Addr, which may be used
 				})
 			}
 		}
@@ -110,8 +74,8 @@ func (w *EtcdWatcher) GetAllAddresses() []resolver.Address {
 }
 
 //返回range channel
-func (w *EtcdWatcher) Watch() chan []resolver.Address {
-	retchannel := make(chan []resolver.Address, CHANNEL_SIZE)
+func (w *EtcdWatcher) start() chan []resolver.Address {
+	retchannel := make(chan []resolver.Address, DEFAULT_CHANNEL_SIZE)
 	w.Wg.Add(1)
 	go func() {
 		defer func() {
@@ -124,27 +88,27 @@ func (w *EtcdWatcher) Watch() chan []resolver.Address {
 		retchannel <- w.cloneAddresses(w.AddrsList)
 
 		//starting a watching channel
-		w.WatchCh = w.Client.Watch(w.Ctx, w.Key, etcdv3.WithPrefix(), etcdv3.WithPrevKV())
+		w.WatchCh = w.Client.Watch(*w.Ctx, w.WatchKey, etcd3.WithPrefix(), etcd3.WithPrevKV())
 		for wresp := range w.WatchCh {
 			//block and go range,watching etcd events change
 			for _, ev := range wresp.Events {
 				//range  wresp.Events slice
 				switch ev.Type {
 				case mvccpb.PUT:
-					jsonobj := EtcdNodeJsonData{}
+					jsonobj := com.ServiceBasicInfo{}
 					err := json.Unmarshal([]byte(ev.Kv.Value), &jsonobj)
 					if err != nil {
 						w.Logger.Error("Parse node data error", zap.String("errmsg", err.Error()))
 						continue
 					}
 					//generate grpc Address struct
-					addr := resolver.Address{Addr: jsonobj.AddrInfo, Metadata: &jsonobj.Metadata}
+					addr := resolver.Address{Addr: jsonobj.AddressInfo, Metadata: &jsonobj.Metadata}
 					if w.addAddr(addr) {
 						//if-add-new,return new
 						retchannel <- w.cloneAddresses(w.AddrsList)
 					}
 				case mvccpb.DELETE:
-					jsonobj := EtcdNodeJsonData{}
+					jsonobj := com.ServiceBasicInfo{}
 					err := json.Unmarshal([]byte(ev.PrevKv.Value), &jsonobj)
 					w.Logger.Info("key", zap.String("prevalue", string(ev.PrevKv.Value)), zap.String("value", string(ev.Kv.Value)))
 					w.Logger.Info("value", zap.String("preky", string(ev.PrevKv.Key)), zap.String("Key", string(ev.Kv.Key)))
@@ -155,7 +119,7 @@ func (w *EtcdWatcher) Watch() chan []resolver.Address {
 						w.Logger.Error("Parse node data error", zap.String("errmsg", err.Error()))
 						continue
 					}
-					addr := resolver.Address{Addr: jsonobj.AddrInfo, Metadata: &jsonobj.Metadata}
+					addr := resolver.Address{Addr: jsonobj.AddressInfo, Metadata: &jsonobj.Metadata}
 					if w.removeAddr(addr) {
 						retchannel <- w.cloneAddresses(w.AddrsList)
 					}
@@ -169,8 +133,8 @@ func (w *EtcdWatcher) Watch() chan []resolver.Address {
 }
 
 //get keys from etcdctl response
-func (w *EtcdWatcher) ExtractAddrs(etcdresponse *etcdv3.GetResponse) []EtcdNodeJsonData {
-	addrs := []EtcdNodeJsonData{}
+func (w *EtcdWatcher) ExtractAddrs(etcdresponse *etcd3.GetResponse) []com.ServiceBasicInfo {
+	addrs := []com.ServiceBasicInfo{}
 
 	//KVS is slice
 	if etcdresponse == nil || etcdresponse.Kvs == nil {
@@ -180,7 +144,7 @@ func (w *EtcdWatcher) ExtractAddrs(etcdresponse *etcdv3.GetResponse) []EtcdNodeJ
 	for i := range etcdresponse.Kvs {
 		if v := etcdresponse.Kvs[i].Value; v != nil {
 			//parse string to node-data
-			jsonobj := EtcdNodeJsonData{}
+			jsonobj := com.ServiceBasicInfo{}
 			err := json.Unmarshal(v, &jsonobj)
 			if err != nil {
 				w.Logger.Error("Parse node data error", zap.String("errmsg", err.Error()))

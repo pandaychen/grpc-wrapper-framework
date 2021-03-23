@@ -1,80 +1,89 @@
 package etcdv3
 
 import (
+	"strings"
 	"sync"
-	//"log"
-	"fmt"
 
+	com "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
 	etcd3 "go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc/resolver"
 )
 
 // Default shchme
 const (
-	etcdScheme = "etcdv3"
+	defaultEtcdScheme = "etcdv3"
 )
 
+var Once sync.Once
+
 type EtcdResolver struct {
-	scheme        string
-	EtcdConfig    etcdv3.Config
-	EtcdCli       *etcd3.Client // etcd3 client
-	EtcdWatchPath string
-	Watcher       *EtcdWatcher
-	Clientconn    resolver.ClientConn
-	Wg            sync.WaitGroup
-	CloseCh       chan struct{} // 关闭 channel
-	Logger        *zap.Logger
+	Schemename string
+	EtcdCli    *etcd3.Client // etcd3 client
+	WatchKey   string
+	Watcher    *EtcdWatcher
+	Clientconn resolver.ClientConn
+	Wg         sync.WaitGroup
+	//CloseCh    chan struct{} // 关闭 channel
+	Logger *zap.Logger
+
+	//control
+	Ctx    *context.Context
+	Cancel context.CancelFunc
 }
 
-// 共性key的共同前缀
-type EtcdKeyDirPath struct {
-	RootName       string //root-name
-	ServiceName    string //service-name
-	ServiceType    enums.ServiceType
-	ServiceVersion string //version
-}
+func NewResolverRegister(config *com.ResolverConfig) (*EtcdResolver, error) {
+	etcdConfg := etcd3.Config{
+		Endpoints: strings.Split(config.Endpoint, ";"),
+	}
 
-func GetCommonEtcdKeyPath(config EtcdKeyDirPath) string {
-	return fmt.Sprintf("/%s/%s/%s", config.RootName, config.ServiceName, config.ServiceVersion)
+	client, err := etcd3.New(etcdConfg)
+	if err != nil {
+		config.Logger.Error("[NewResolverRegister]Create etcdv3 client error", zap.String("errmsg", err.Error()))
+		return nil, err
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	r := &EtcdResolver{
+		Schemename: config.Schemename,
+		EtcdCli:    client,
+		WatchKey:   config.BuildEtcdPrefix(),
+		Logger:     config.Logger,
+		Ctx:        &ctx,
+		Cancel:     cancel,
+	}
+
+	if r.Schemename == "" {
+		r.Schemename = defaultEtcdScheme
+	}
+
+	// 调用grpc/resolver包的全局方法注册
+	Once.Do(
+		func() {
+			resolver.Register(r)
+		})
+	return r, nil
 }
 
 // Build returns itself for resolver, because it's both a builder and a resolver.
 func (r *EtcdResolver) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOption) (resolver.Resolver, error) {
-	var err error
-	r.EtcdCli, err = etcdv3.New(r.EtcdConfig)
-	if err != nil {
-		r.Logger.Error("Create etcd client error", zap.String("errmsg", err.Error()))
-		return nil, err
-	}
-
 	//用来从etcd获取serverlist,并通知Clientconn更新连接池
 	r.Clientconn = cc
 
-	//创建watcher（要监听的路径+etcdclient）
-	r.Watcher = NewEtcdWatcher(r.EtcdWatchPath, r.EtcdCli, r.Logger)
+	//create watcher
+	r.Watcher = NewEtcdWatcher(r.Ctx, r.WatchKey, r.EtcdCli, r.Logger, &r.Wg)
 
-	//go with a new groutine，从etcd中监控最新的地址变化，并通知clientconn（r.cc.UpdateState(resolver.State{Addresses: addr})）
+	//start watcher，从etcd中监控最新的地址变化，并通知clientconn
 	r.start()
+
 	return r, nil
 }
 
 // Scheme returns the scheme.
 func (r *EtcdResolver) Scheme() string {
-	return r.scheme
-}
-
-// Start Resover return a closeCh, Should call by Builde func()
-func (r *EtcdResolver) start() {
-	r.Wg.Add(1)
-	go func() {
-		defer r.Wg.Done()
-		addrlist_channel := r.Watcher.Watch()
-		for addr := range addrlist_channel {
-			//range在channel上,addr为最新的[]resolver.Address
-			r.Clientconn.UpdateState(resolver.State{Addresses: addr})
-		}
-	}()
+	return r.Schemename
 }
 
 // ResolveNow is a noop for resolver.
@@ -87,15 +96,15 @@ func (r *EtcdResolver) Close() {
 	r.Wg.Wait()
 }
 
-//注册resovler--客户端
-// 包的全局方法
-func RegisterResolver(reso_scheme string, etcdConfig etcdv3.Config, config EtcdKeyDirPath, zaplog *zap.Logger) {
-	etcdresolver := &EtcdResolver{
-		scheme:        reso_scheme, //name--etcdv3
-		EtcdConfig:    etcdConfig,
-		EtcdWatchPath: GetCommonEtcdKeyPath(config),
-		Logger:        zaplog,
-	}
-	//register resovler
-	resolver.Register(etcdresolver)
+// Start Resover return a closeCh, Should call by Builde func()
+func (r *EtcdResolver) start() {
+	addrlist_channel := r.Watcher.start()
+	r.Wg.Add(1)
+	go func() {
+		defer r.Wg.Done()
+		for addr := range addrlist_channel {
+			//range在channel上,addr为最新的[]resolver.Address
+			r.Clientconn.UpdateState(resolver.State{Addresses: addr})
+		}
+	}()
 }
