@@ -1,5 +1,7 @@
 package balancer
 
+// balancer：带权重的随机算法
+
 import (
 	"context"
 	mrand "math/rand"

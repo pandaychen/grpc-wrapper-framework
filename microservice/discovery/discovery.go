@@ -29,6 +29,6 @@ func NewDiscoveryResolver(conf *com.ResolverConfig) (interface{}, error) {
 	case enums.REG_TYPE_ETCD:
 		return etcdv3.NewResolverRegister(conf)
 	default:
-		return nil, errors.New("not support register method")
+		return nil, errors.New("not support resolve method")
 	}
 }
