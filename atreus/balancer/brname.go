@@ -17,7 +17,8 @@ const (
 )
 
 func GetServerWeightValue(mdata interface{}) int {
-	md, ok := mdata.(metadata.MD)
+	//md, ok := mdata.(metadata.MD)
+	md, ok := mdata.(*metadata.MD)
 	if ok {
 		values := md.Get(vars.SERVICE_WEIGHT_KEY)
 		if len(values) > 0 {
