@@ -77,7 +77,7 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 
 	//Fill the interceptors
 
-	srv.Use(srv.Recovery())
+	srv.Use(srv.Recovery(), srv.Metrics2Prometheus())
 
 	nodeinfo := com.ServiceBasicInfo{
 		AddressInfo: conf.Addr,

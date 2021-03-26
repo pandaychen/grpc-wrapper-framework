@@ -22,6 +22,7 @@ type simpleRoundRobinPicker struct {
 	lock     sync.Mutex
 	Index    int
 	Wrr      *pybalancer.NginxWeightRoundrobin
+	Logger   *zap.Logger
 }
 
 // newsimpleRoundRobinBuilder creates a new roundrobin balancer builder
@@ -65,6 +66,7 @@ func (r *simpleRoundRobinPickerBuilder) Build(readySCs map[resolver.Address]bala
 	return &simpleRoundRobinPicker{
 		subConns: scs,
 		Wrr:      wrr,
+		Logger:   r.Logger,
 	}
 }
 
