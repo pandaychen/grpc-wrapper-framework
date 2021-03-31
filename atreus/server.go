@@ -45,7 +45,7 @@ type Server struct {
 func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 	var err error
 	if conf == nil {
-		//panic("atreus config null")
+		panic("atreus server config null")
 	}
 	/*
 		var opt []grpc.ServerOption
@@ -55,10 +55,10 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 
 	logger, _ := zaplog.ZapLoggerInit(DEFAULT_ATREUS_SERVICE_NAME)
 	srv := &Server{
-		Logger: logger,
-		Lock:   new(sync.RWMutex),
-		//InnerHandlers: make([]grpc.UnaryServerInterceptor, 0),
-		Conf: NewAtreusServerConfig2(conf),
+		Logger:        logger,
+		Lock:          new(sync.RWMutex),
+		InnerHandlers: make([]grpc.UnaryServerInterceptor, 0),
+		Conf:          NewAtreusServerConfig2(conf),
 	}
 
 	//初始化gRPC-Server的keepalive参数
@@ -76,7 +76,6 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 	srv.RpcServer = grpc.NewServer(opt...)
 
 	//Fill the interceptors
-
 	srv.Use(srv.Recovery(), srv.Metrics2Prometheus())
 
 	nodeinfo := com.ServiceBasicInfo{
