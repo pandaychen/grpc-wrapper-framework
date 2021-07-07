@@ -10,11 +10,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-var vipers *Conf
+var vipers *Config
 
-const (
-	DEFAULT_DIR = "./conf/"
-)
+var DEFAULT_DIR = "./conf/"
 
 type OnConfigChange func(name string, op uint32)
 
@@ -22,11 +20,11 @@ type Config struct {
 	*viper.Viper
 }
 
-func (c *Config) Use(key string) *Conf {
+func (c *Config) Use(key string) *Config {
 	if c.Sub(key) == nil {
 		return nil
 	}
-	return &Conf{
+	return &Config{
 		c.Sub(key),
 	}
 }
@@ -151,7 +149,7 @@ func (c *Config) MustDuration(key string, defaultValue time.Duration) time.Durat
 	return value
 }
 
-func (c *Config) NeedUse(key string) *Conf {
+func (c *Config) NeedUse(key string) *Config {
 	if c.Sub(key) == nil {
 		panic("conf Use error," + key + " is needed")
 	}
@@ -159,7 +157,7 @@ func (c *Config) NeedUse(key string) *Conf {
 }
 
 //使用配置对象
-func Use(key string) *Conf {
+func Use(key string) *Config {
 	if vipers.Sub(key) == nil {
 		return nil
 	}
@@ -169,7 +167,7 @@ func Use(key string) *Conf {
 }
 
 //需要使用，如果不存在则抛panic
-func NeedUse(key string) *Conf {
+func NeedUse(key string) *Config {
 	if vipers.Sub(key) == nil {
 		panic("conf Use error," + key + " is needed")
 	}

@@ -3,6 +3,8 @@ package atreus
 //A wrapper grpc-server
 
 import (
+	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -10,9 +12,16 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/metadata"
 
 	zaplog "github.com/pandaychen/goes-wrapper/zaplog"
+	"github.com/pandaychen/grpc-wrapper-framework/common/enums"
+	"github.com/pandaychen/grpc-wrapper-framework/common/vars"
 	"github.com/pandaychen/grpc-wrapper-framework/config"
+	com "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
+	"github.com/pandaychen/grpc-wrapper-framework/pkg/xrand"
+
+	dis "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery"
 )
 
 const (
@@ -29,13 +38,14 @@ type Server struct {
 	RpcServer     *grpc.Server //原生Server
 	EtcdClient    *etcdv3.Client
 	InnerHandlers []grpc.UnaryServerInterceptor //拦截器数组
-
-	IsDebug bool
+	ServiceReg    dis.ServiceRegisterWrapper
+	IsDebug       bool
 }
 
 func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
+	var err error
 	if conf == nil {
-		panic("atreus config null")
+		panic("atreus server config null")
 	}
 	/*
 		var opt []grpc.ServerOption
@@ -45,10 +55,10 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 
 	logger, _ := zaplog.ZapLoggerInit(DEFAULT_ATREUS_SERVICE_NAME)
 	srv := &Server{
-		Logger: logger,
-		Lock:   new(sync.RWMutex),
-		//InnerHandlers: make([]grpc.UnaryServerInterceptor, 0),
-		Conf: NewAtreusServerConfig2(conf),
+		Logger:        logger,
+		Lock:          new(sync.RWMutex),
+		InnerHandlers: make([]grpc.UnaryServerInterceptor, 0),
+		Conf:          NewAtreusServerConfig2(conf),
 	}
 
 	//初始化gRPC-Server的keepalive参数
@@ -61,18 +71,50 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		MaxConnectionAge:      time.Duration(srv.Conf.MaxLifeTime),       //如果任意连接存活时间超过MaxLifeTime-s,发送一个GOAWAY
 	})
 
-	opt = append(opt, keepaliveopts, grpc.UnaryInterceptor(srv.InnerHandlers))
+	opt = append(opt, keepaliveopts, grpc.UnaryInterceptor(srv.BuildUnaryInterceptorChain2))
 
 	srv.RpcServer = grpc.NewServer(opt...)
 
 	//Fill the interceptors
+	srv.Use(srv.Recovery(), srv.AtreusXRequestId(), srv.Metrics2Prometheus())
 
-	srv.Use(s.Recovery())
+	nodeinfo := com.ServiceBasicInfo{
+		AddressInfo: conf.Addr,
+		Metadata:    metadata.Pairs(vars.SERVICE_WEIGHT_KEY, conf.InitWeight),
+	}
+
+	srv.ServiceReg, err = dis.NewDiscoveryRegister(&com.RegisterConfig{
+		RegisterType:   enums.RegType(conf.RegisterType),
+		RootName:       conf.RegisterRootPath,
+		ServiceName:    conf.RegisterService,
+		ServiceVersion: conf.RegisterServiceVer,
+		ServiceNodeID:  fmt.Sprintf("addr#%s", conf.Addr),
+		RandomSuffix:   string(xrand.RandomString(8)),
+		Ttl:            conf.RegisterTTL,
+		Endpoint:       conf.RegisterEndpoints,
+		Logger:         logger,
+		NodeData:       nodeinfo,
+	})
+
+	if err == nil {
+		err = srv.ServiceReg.ServiceRegister()
+		if err != nil {
+			logger.Error("[NewServer]ServiceRegister error", zap.String("errmsg", err.Error()))
+			return nil
+		}
+	} else {
+		logger.Error("[NewServer]NewDiscoveryRegister error", zap.String("errmsg", err.Error()))
+		panic(err)
+	}
 
 	return srv
 }
 
 // Server return the grpc server for registering service.
-func (s *Server) Server() *grpc.Server {
+func (s *Server) GetServer() *grpc.Server {
 	return s.RpcServer
+}
+
+func (s *Server) Serve(lis net.Listener) error {
+	return s.RpcServer.Serve(lis)
 }

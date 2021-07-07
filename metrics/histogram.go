@@ -33,7 +33,7 @@ func (opts HistogramVecOption) Build() *HistogramVec {
 		opts.Name = DefaultName
 	}
 	vec := prometheus.NewHistogramVec(
-		prometheus.HistogramVecOption{
+		prometheus.HistogramOpts{
 			Namespace: opts.Namespace,
 			Subsystem: opts.Subsystem,
 			Name:      opts.Name,
@@ -59,7 +59,7 @@ func NewHistogramVec(name, help string, labels []string, buckets []float64) *His
 }
 
 func (histogram *HistogramVec) Observe(v float64, labels ...string) error {
-	if len(labels) != len(counter.HistogramVecOption.Labels) {
+	if len(labels) != len(histogram.HistogramVecOption.Labels) {
 		return errors.New("labels count not match")
 	}
 	histogram.WithLabelValues(labels...).Observe(v)

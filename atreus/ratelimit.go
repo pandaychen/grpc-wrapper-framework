@@ -49,11 +49,11 @@ func (s *Server) LimitStream(limiter Limiter) grpc.StreamServerInterceptor {
 type XRateLimiter struct {
 	RateStore  map[string]*rate.Limiter
 	LogTime    int64
-	Rate       int
+	Rate       rate.Limit
 	BucketSize int
 }
 
-func NewXRateLimiter(rates, size int) *XRateLimiter {
+func NewXRateLimiter(rates rate.Limit, size int) *XRateLimiter {
 	return &XRateLimiter{
 		RateStore:  make(map[string]*rate.Limiter),
 		LogTime:    time.Now().UnixNano(),

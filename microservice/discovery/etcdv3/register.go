@@ -3,148 +3,166 @@ package etcdv3
 //etcdv3的服务注册封装
 
 import (
+	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
-	_ "github.com/pandaychen/grpc-wrapper-framework/discovery/common"
+	"go.etcd.io/etcd/etcdserver/api/v3rpc/rpctypes"
+
+	com "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
+	etcd3 "go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
 
-const (
-	G_ROOT_NAME    = "lb_root"
-	etcd_split_sep = "/"
-)
-
 type EtcdRegister struct {
-	//Etcd3Client *etcdv3.Client
-	Logger *zap.Logger
-	Key    string //service uniq-key
-	Value  string //micro-service ip+port+weight
-	Ttl    time.Duration
-	Ctx    context.Context
-	Cancel context.CancelFunc
+	Etcd3Client *etcd3.Client
+	Logger      *zap.Logger
+	Key         string //service uniq-key
+	Value       string //micro-service ip+port+weight
+	Ttl         time.Duration
+	Ctx         context.Context
+	Cancel      context.CancelFunc
+	ApiOn       bool
+	Leaseid     etcd3.LeaseID
 }
 
-func NewRegister(config RegisterConfig) (*EtcdRegister, error) {
-	/*
-		client, err := etcdv3.New(config.EtcdConfig)
-		if err != nil {
-			config.Logger.Error("Create etcdv3 client error", zap.String("errmsg", err.Error()))
-			return nil, err
-		}
+func NewRegister(config *com.RegisterConfig) (*EtcdRegister, error) {
+	//TODO：use https://github.com/pandaychen/etcd_tools/blob/master/clientv3.go instead
+	etcdConfg := etcd3.Config{
+		Endpoints: strings.Split(config.Endpoint, ";"),
+	}
 
-		//check format
-		val, err := json.Marshal(config.NodeData)
-		if err != nil {
-			config.Logger.Error("Create etcdv3 value error", zap.String("errmsg", err.Error()))
-			return nil, err
-		}
-
-		ctx, cancel := context.WithCancel(context.Background())
-		registry := &EtcdRegister{
-			Etcd3Client: client,
-			Logger:      config.Logger,
-			Ttl:         config.Ttl / time.Second,
-			Ctx:         ctx,
-			Cancel:      cancel,
-			Key:         BuildEtcdKey(config),
-			Value:       string(val),
-		}
-		return registry, nil
-	*/
-	return nil, err
-}
-
-/*
-func BuildEtcdKey(config RegisterConfig) string {
-	return fmt.Sprintf("/%s/%s/%s/%s", config.RootName, config.ServiceName, config.ServiceVersion, config.ServiceNodeID)
-}
-
-//call etcd api
-func (et *EtcdRegister) RegisterByApi() error {
-	var err error
-	resp, err := et.Etcd3Client.Grant(context.TODO(), int64(et.Ttl))
+	client, err := etcd3.New(etcdConfg)
 	if err != nil {
-		et.Logger.Error("Register Grant error", zap.String("errmsg", err.Error()))
-		return fmt.Errorf("create etcd3 lease failed: %v", err)
-	}
-	if _, err := et.Etcd3Client.Put(context.TODO(), et.Key, et.Value, etcdv3.WithLease(resp.ID)); err != nil {
-		et.Logger.Error("Set key with ttl error", zap.String("key", et.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)), zap.String("errmsg", err.Error()))
-		return fmt.Errorf("set service '%s' with ttl to etcd3 failed: %s", et.Key, err.Error())
+		config.Logger.Error("[NewRegister]Create etcdv3 client error", zap.String("errmsg", err.Error()))
+		return nil, err
 	}
 
-	//in keepalive,start with a new groutine for loop
-	if _, err := et.Etcd3Client.KeepAlive(context.TODO(), resp.ID); err != nil {
-		et.Logger.Error("Set key keepalive error", zap.String("key", et.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)), zap.String("errmsg", err.Error()))
-		return fmt.Errorf("refresh service '%s' with ttl to etcd3 failed: %s", et.Key, err.Error())
+	//check format
+	val, err := json.Marshal(config.NodeData)
+	if err != nil {
+		config.Logger.Error("[NewRegister]Create etcdv3 value error", zap.String("errmsg", err.Error()))
+		return nil, err
 	}
-	return nil
+
+	ctx, cancel := context.WithCancel(context.Background())
+	registry := &EtcdRegister{
+		Etcd3Client: client,
+		Logger:      config.Logger,
+		Ttl:         config.Ttl / time.Second,
+		Ctx:         ctx,
+		Cancel:      cancel,
+		Key:         config.BuildEtcdKey(),
+		Value:       string(val),
+		ApiOn:       true,
+	}
+	return registry, nil
 }
 
-//call with timer-tick
-func (et *EtcdRegister) RegisterByTimer() error {
-	//set keep alive fuction
-	KeepAliveFunc := func() error {
-		resp, err := et.Etcd3Client.Grant(et.Ctx, int64(et.Ttl)) //et.ttl必须转为int64，否则error
+func (r *EtcdRegister) ServiceRegister() error {
+	if r.ApiOn {
+		resp, err := r.Etcd3Client.Grant(r.Ctx, int64(r.Ttl))
 		if err != nil {
-			et.Logger.Error("Register service error", zap.String("errmsg", err.Error()))
-			return err
+			r.Logger.Error("[ServiceRegister]Register Grant error", zap.String("errmsg", err.Error()))
+			return fmt.Errorf("create etcd3 lease failed: %v", err)
 		}
-		//fmt.Println(resp.ID)
-		_, err = et.Etcd3Client.Get(et.Ctx, et.Key)
+		r.Leaseid = resp.ID
+		_, err = r.Etcd3Client.Put(context.TODO(), r.Key, r.Value, etcd3.WithLease(resp.ID))
 		if err != nil {
-			//the first time
-			if err == rpctypes.ErrKeyNotFound {
-				if _, err := et.Etcd3Client.Put(et.Ctx, et.Key, et.Value, etcdv3.WithLease(resp.ID)); err != nil {
-					et.Logger.Error("Set key with ttl error", zap.String("key", et.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)), zap.String("errmsg", err.Error()))
+			r.Logger.Error("[ServiceRegister]Set key with ttl error", zap.String("key", r.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)), zap.String("errmsg", err.Error()))
+			return fmt.Errorf("set service '%s' with ttl to etcd3 failed: %s", r.Key, err.Error())
+		}
+
+		//in keepalive,start with a new groutine for loop
+		leaseRespChan, err := r.Etcd3Client.KeepAlive(context.TODO(), resp.ID)
+		if err != nil {
+			r.Logger.Error("[ServiceRegister]Set key keepalive error", zap.String("key", r.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)), zap.String("errmsg", err.Error()))
+			return fmt.Errorf("refresh service '%s' with ttl to etcd3 failed: %s", r.Key, err.Error())
+		}
+		go r.listenLeaseChan(leaseRespChan)
+	} else {
+		//set keepalive fuction
+		KeepAliveFunc := func() error {
+			resp, err := r.Etcd3Client.Grant(r.Ctx, int64(r.Ttl)) //et.ttl必须转为int64，否则error
+			if err != nil {
+				r.Logger.Error("[ServiceRegister]Register service error", zap.String("errmsg", err.Error()))
+				return err
+			}
+			r.Leaseid = resp.ID
+			_, err = r.Etcd3Client.Get(r.Ctx, r.Key)
+			if err != nil {
+				//the first time
+				if err == rpctypes.ErrKeyNotFound {
+					if _, err := r.Etcd3Client.Put(r.Ctx, r.Key, r.Value, etcd3.WithLease(resp.ID)); err != nil {
+						r.Logger.Error("[ServiceRegister]Set key with ttl error", zap.String("key", r.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)), zap.String("errmsg", err.Error()))
+					}
+				} else {
+					r.Logger.Error("[ServiceRegister]Set key with lease failed(fatal error)", zap.String("key", r.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)), zap.String("errmsg", err.Error()))
 				}
+				return err
 			} else {
-				et.Logger.Error("Set key with lease failed(fatal error)", zap.String("key", et.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)), zap.String("errmsg", err.Error()))
-			}
-			return err
-		} else {
-			// refresh set to true for not notifying the watcher
-			if _, err := et.Etcd3Client.Put(et.Ctx, et.Key, et.Value, etcdv3.WithLease(resp.ID)); err != nil {
-				et.Logger.Error("Refresh key lease with ttl error", zap.String("key", et.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)), zap.String("errmsg", err.Error()))
-				return err
-			}
-			et.Logger.Info("Refresh key lease with ttl succ", zap.String("key", et.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)))
-		}
-		return nil
-	}
-
-	err := KeepAliveFunc()
-	if err != nil {
-		et.Logger.Error("Keep alive ttl error", zap.String("errmsg", err.Error()))
-		return err
-	}
-
-	ticker := time.NewTicker(et.Ttl / 5 * time.Second)
-	for {
-		select {
-		case <-ticker.C:
-			KeepAliveFunc()
-		case <-et.Ctx.Done():
-			ticker.Stop() //shutdown timer
-			if _, err := et.Etcd3Client.Delete(context.Background(), et.Key); err != nil {
-				et.Logger.Error("Unregister  error", zap.String("key", et.Key), zap.String("errmsg", err.Error()))
-				return err
+				// refresh set to true for not notifying the watcher
+				if _, err := r.Etcd3Client.Put(r.Ctx, r.Key, r.Value, etcd3.WithLease(resp.ID)); err != nil {
+					r.Logger.Error("[ServiceRegister]Refresh key lease with ttl error", zap.String("key", r.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)), zap.String("errmsg", err.Error()))
+					return err
+				}
+				r.Logger.Info("[ServiceRegister]Refresh key lease with ttl succ", zap.String("key", r.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)))
 			}
 			return nil
 		}
+
+		err := KeepAliveFunc()
+		if err != nil {
+			r.Logger.Error("[ServiceRegister]Keep alive ttl error", zap.String("errmsg", err.Error()))
+			return err
+		}
+
+		ticker := time.NewTicker(r.Ttl / 5 * time.Second)
+		for {
+			select {
+			case <-ticker.C:
+				KeepAliveFunc()
+			case <-r.Ctx.Done():
+				ticker.Stop() //shutdown timer
+				if _, err := r.Etcd3Client.Delete(context.Background(), r.Key); err != nil {
+					r.Logger.Error("[ServiceRegister]Unregister  error", zap.String("key", r.Key), zap.String("errmsg", err.Error()))
+					return err
+				}
+				return nil
+			}
+		}
 	}
 
 	return nil
 }
 
-//RELEASE KEY
-func (et *EtcdRegister) UnRegister() error {
-	//call ctx.Done,must goes first
-	et.Cancel()
-	if _, err := et.Etcd3Client.Delete(context.Background(), et.Key); err != nil {
-		et.Logger.Error("Unregister key error", zap.String("key", et.Key), zap.String("errmsg", err.Error()))
+func (r *EtcdRegister) ServiceUnRegister() error {
+	defer r.Cancel()
+	if _, err := r.Etcd3Client.Delete(context.Background(), r.Key); err != nil {
+		r.Logger.Error("[ServiceUnRegister]Unregister key error", zap.String("key", r.Key), zap.String("errmsg", err.Error()))
 		return err
 	}
+	r.Etcd3Client.Close()
 	return nil
 }
-*/
+
+func (r *EtcdRegister) listenLeaseChan(leaseRespChan <-chan *etcd3.LeaseKeepAliveResponse) {
+	var (
+		leaseKeepResp *etcd3.LeaseKeepAliveResponse
+	)
+	for {
+		select {
+		case leaseKeepResp = <-leaseRespChan:
+			if leaseKeepResp == nil {
+				r.Logger.Error("[listenLeaseChan]Etcd leaseid not effectiveness,quit")
+				//送channel通知应用层，重新续期(告警)
+				goto END
+			} else {
+				//fmt.Println("Etcd leaseid effectiveness", leaseKeepResp.ID)
+			}
+		}
+	}
+END:
+}
