@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/pandaychen/grpc-wrapper-framework/atreus"
-	"github.com/pandaychen/grpc-wrapper-framework/config"
-	pb "github.com/pandaychen/grpc-wrapper-framework/proto"
+	"grpc-wrapper-framework/atreus"
+	"grpc-wrapper-framework/config"
+	pb "grpc-wrapper-framework/proto"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/grpclog"
 )

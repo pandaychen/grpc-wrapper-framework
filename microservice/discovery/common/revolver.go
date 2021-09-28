@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pandaychen/grpc-wrapper-framework/common/enums"
+	"grpc-wrapper-framework/common/enums"
+
 	"go.uber.org/zap"
 )
 

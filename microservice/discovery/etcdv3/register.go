@@ -8,10 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"go.etcd.io/etcd/etcdserver/api/v3rpc/rpctypes"
+	//"go.etcd.io/etcd/etcdserver/api/v3rpc/rpctypes"	//gomod找不到此库
 
-	com "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
-	etcd3 "go.etcd.io/etcd/clientv3"
+	com "grpc-wrapper-framework/microservice/discovery/common"
+
+	etcd3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
@@ -94,14 +95,19 @@ func (r *EtcdRegister) ServiceRegister() error {
 			_, err = r.Etcd3Client.Get(r.Ctx, r.Key)
 			if err != nil {
 				//the first time
-				if err == rpctypes.ErrKeyNotFound {
-					if _, err := r.Etcd3Client.Put(r.Ctx, r.Key, r.Value, etcd3.WithLease(resp.ID)); err != nil {
-						r.Logger.Error("[ServiceRegister]Set key with ttl error", zap.String("key", r.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)), zap.String("errmsg", err.Error()))
+				/*
+					if err == rpctypes.ErrKeyNotFound {
+						if _, err := r.Etcd3Client.Put(r.Ctx, r.Key, r.Value, etcd3.WithLease(resp.ID)); err != nil {
+							r.Logger.Error("[ServiceRegister]Set key with ttl error", zap.String("key", r.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)), zap.String("errmsg", err.Error()))
+						}
+					} else {
+						r.Logger.Error("[ServiceRegister]Set key with lease failed(fatal error)", zap.String("key", r.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)), zap.String("errmsg", err.Error()))
 					}
-				} else {
-					r.Logger.Error("[ServiceRegister]Set key with lease failed(fatal error)", zap.String("key", r.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)), zap.String("errmsg", err.Error()))
+				*/
+				if _, err := r.Etcd3Client.Put(r.Ctx, r.Key, r.Value, etcd3.WithLease(resp.ID)); err != nil {
+					r.Logger.Error("[ServiceRegister]Set key with ttl error", zap.String("key", r.Key), zap.String("leaseid", fmt.Sprintf("%x", resp.ID)), zap.String("errmsg", err.Error()))
+					return err
 				}
-				return err
 			} else {
 				// refresh set to true for not notifying the watcher
 				if _, err := r.Etcd3Client.Put(r.Ctx, r.Key, r.Value, etcd3.WithLease(resp.ID)); err != nil {

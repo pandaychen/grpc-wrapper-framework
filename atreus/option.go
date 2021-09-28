@@ -1,9 +1,9 @@
 package atreus
 
 import (
-	"github.com/pandaychen/grpc-wrapper-framework/config"
-	"github.com/pandaychen/grpc-wrapper-framework/pkg/k8s"
-	"github.com/pandaychen/grpc-wrapper-framework/pkg/xtime"
+	"grpc-wrapper-framework/config"
+	"grpc-wrapper-framework/pkg/k8s"
+	"grpc-wrapper-framework/pkg/xtime"
 )
 
 type AtreusServerConfig struct {

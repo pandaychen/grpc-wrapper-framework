@@ -4,9 +4,10 @@ import (
 	"errors"
 
 	//etcdv3 "github.com/pandaychen/etcd_tools"
-	"github.com/pandaychen/grpc-wrapper-framework/common/enums"
-	com "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
-	"github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/etcdv3"
+	"grpc-wrapper-framework/common/enums"
+	com "grpc-wrapper-framework/microservice/discovery/common"
+	"grpc-wrapper-framework/microservice/discovery/etcdv3"
+
 	"google.golang.org/grpc/resolver"
 )
 
@@ -16,9 +17,9 @@ type ServiceRegisterWrapper interface {
 }
 
 type ServiceResolverWrapper interface {
-	Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOption) (resolver.Resolver, error)
+	Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error)
 	Scheme() string
-	ResolveNow(o resolver.ResolveNowOption)
+	ResolveNow(o resolver.ResolveNowOptions)
 	Close()
 }
 

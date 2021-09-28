@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/pandaychen/grpc-wrapper-framework/atreus"
-	"github.com/pandaychen/grpc-wrapper-framework/config"
-	pb "github.com/pandaychen/grpc-wrapper-framework/proto"
+	"grpc-wrapper-framework/atreus"
+	"grpc-wrapper-framework/config"
+	pb "grpc-wrapper-framework/proto"
+
 	"golang.org/x/net/context"
+
 	//"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -32,7 +34,14 @@ func main() {
 	client := pb.NewGreeterServiceClient(conn.RpcPersistClient)
 	//add request
 	ctx := metadata.NewOutgoingContext(context.Background(), metadata.Pairs(atreus.DefaultAtreusReqIDKey, "cvalue"))
-
-	resp, err := client.SayHello(ctx, &pb.HelloRequest{Name: "hello golang"})
-	fmt.Printf("normal hello: resp=%v, error=%v\n", resp, err)
+	var fail int
+	for i := 0; i < 1000; i++ {
+		_, err := client.SayHello(ctx, &pb.HelloRequest{Name: "hello golang"})
+		if err != nil {
+			fmt.Println(err)
+			fail++
+		}
+		//fmt.Printf("normal hello: resp=%v, error=%v\n", resp, err)
+	}
+	fmt.Println(fail)
 }

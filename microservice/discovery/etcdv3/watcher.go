@@ -5,9 +5,10 @@ import (
 	"sync"
 	"time"
 
-	com "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
-	etcd3 "go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/mvcc/mvccpb"
+	com "grpc-wrapper-framework/microservice/discovery/common"
+
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	etcd3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/resolver"

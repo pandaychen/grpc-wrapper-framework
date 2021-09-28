@@ -4,8 +4,9 @@ import (
 	"strings"
 	"sync"
 
-	com "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
-	etcd3 "go.etcd.io/etcd/clientv3"
+	com "grpc-wrapper-framework/microservice/discovery/common"
+
+	etcd3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/resolver"
@@ -68,7 +69,7 @@ func NewResolverRegister(config *com.ResolverConfig) (*EtcdResolver, error) {
 }
 
 // Build returns itself for resolver, because it's both a builder and a resolver.
-func (r *EtcdResolver) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOption) (resolver.Resolver, error) {
+func (r *EtcdResolver) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
 	//用来从etcd获取serverlist,并通知Clientconn更新连接池
 	r.Clientconn = cc
 
@@ -87,7 +88,7 @@ func (r *EtcdResolver) Scheme() string {
 }
 
 // ResolveNow is a noop for resolver.
-func (r *EtcdResolver) ResolveNow(o resolver.ResolveNowOption) {
+func (r *EtcdResolver) ResolveNow(o resolver.ResolveNowOptions) {
 }
 
 // Close is a noop for resolver.

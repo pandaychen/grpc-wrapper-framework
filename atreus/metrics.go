@@ -3,8 +3,9 @@ package atreus
 import (
 	"context"
 
-	"github.com/pandaychen/grpc-wrapper-framework/atreus/codes"
-	"github.com/pandaychen/grpc-wrapper-framework/metrics"
+	"grpc-wrapper-framework/atreus/codes"
+	"grpc-wrapper-framework/metrics"
+
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )

@@ -6,6 +6,8 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	pbstatus "google.golang.org/genproto/googleapis/rpc/status"
 	rpcodes "google.golang.org/grpc/codes"
+
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -21,3 +23,15 @@ var (
 		Status: PB_SUCC,
 	}
 )
+
+// Breaker：Acceptable checks if given error is acceptable
+func CheckErrorIsAcceptable(err error) bool {
+	switch status.Code(err) {
+	case rpcodes.DeadlineExceeded, rpcodes.Internal, rpcodes.Unavailable, rpcodes.DataLoss:
+		//gRPC内部错误，过滤掉
+		return false
+	default:
+		//逻辑错误
+		return true
+	}
+}

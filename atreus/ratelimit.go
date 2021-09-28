@@ -1,5 +1,7 @@
 package atreus
 
+//提供官方golang.org/x/time/rate的令牌桶限流中间件
+
 import (
 	"context"
 	"time"
@@ -47,7 +49,7 @@ func (s *Server) LimitStream(limiter Limiter) grpc.StreamServerInterceptor {
 
 // 提供基础xrate的限速实现
 type XRateLimiter struct {
-	RateStore  map[string]*rate.Limiter
+	RateStore  map[string]*rate.Limiter //按照RPC-method限流
 	LogTime    int64
 	Rate       rate.Limit
 	BucketSize int
@@ -62,6 +64,8 @@ func NewXRateLimiter(rates rate.Limit, size int) *XRateLimiter {
 	}
 }
 
+//true：限速，请求丢弃
+//false：请求放过
 func (x *XRateLimiter) Allow(method string) bool {
 	if _, exists := x.RateStore[method]; exists {
 		//return !x.RateStore[method].Allow()

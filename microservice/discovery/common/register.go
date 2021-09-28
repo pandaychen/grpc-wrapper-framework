@@ -6,7 +6,8 @@ import (
 	"time"
 
 	//etcdv3 "github.com/pandaychen/etcd_tools"
-	"github.com/pandaychen/grpc-wrapper-framework/common/enums"
+	"grpc-wrapper-framework/common/enums"
+
 	"go.uber.org/zap"
 	"google.golang.org/grpc/metadata"
 )

@@ -8,20 +8,21 @@ import (
 	"sync"
 	"time"
 
-	etcdv3 "go.etcd.io/etcd/clientv3"
+	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 
-	zaplog "github.com/pandaychen/goes-wrapper/zaplog"
-	"github.com/pandaychen/grpc-wrapper-framework/common/enums"
-	"github.com/pandaychen/grpc-wrapper-framework/common/vars"
-	"github.com/pandaychen/grpc-wrapper-framework/config"
-	com "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery/common"
-	"github.com/pandaychen/grpc-wrapper-framework/pkg/xrand"
+	"grpc-wrapper-framework/common/enums"
+	"grpc-wrapper-framework/common/vars"
+	"grpc-wrapper-framework/config"
+	com "grpc-wrapper-framework/microservice/discovery/common"
+	"grpc-wrapper-framework/pkg/xrand"
 
-	dis "github.com/pandaychen/grpc-wrapper-framework/microservice/discovery"
+	zaplog "github.com/pandaychen/goes-wrapper/zaplog"
+
+	dis "grpc-wrapper-framework/microservice/discovery"
 )
 
 const (
@@ -35,11 +36,15 @@ type Server struct {
 	Lock   *sync.RWMutex
 
 	//wrapper Server
-	RpcServer     *grpc.Server //原生Server
-	EtcdClient    *etcdv3.Client
-	InnerHandlers []grpc.UnaryServerInterceptor //拦截器数组
-	ServiceReg    dis.ServiceRegisterWrapper
-	IsDebug       bool
+	RpcServer           *grpc.Server //原生Server
+	EtcdClient          *etcdv3.Client
+	InnerHandlers       []grpc.UnaryServerInterceptor  //拦截器数组
+	InnerStreamHandlers []grpc.StreamServerInterceptor //stream拦截器数组
+	ServiceReg          dis.ServiceRegisterWrapper
+
+	//limiter
+	Limiters *XRateLimiter
+	IsDebug  bool
 }
 
 func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
@@ -55,10 +60,11 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 
 	logger, _ := zaplog.ZapLoggerInit(DEFAULT_ATREUS_SERVICE_NAME)
 	srv := &Server{
-		Logger:        logger,
-		Lock:          new(sync.RWMutex),
-		InnerHandlers: make([]grpc.UnaryServerInterceptor, 0),
-		Conf:          NewAtreusServerConfig2(conf),
+		Logger:              logger,
+		Lock:                new(sync.RWMutex),
+		InnerHandlers:       make([]grpc.UnaryServerInterceptor, 0),
+		InnerStreamHandlers: make([]grpc.StreamServerInterceptor, 0),
+		Conf:                NewAtreusServerConfig2(conf),
 	}
 
 	//初始化gRPC-Server的keepalive参数
@@ -75,8 +81,11 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 
 	srv.RpcServer = grpc.NewServer(opt...)
 
+	//init interceptors
+	srv.Limiters = NewXRateLimiter(1, 1)
+
 	//Fill the interceptors
-	srv.Use(srv.Recovery(), srv.AtreusXRequestId(), srv.Metrics2Prometheus())
+	srv.Use(srv.Recovery(), srv.AtreusXRequestId(), srv.Metrics2Prometheus(), srv.Limit(srv.Limiters))
 
 	nodeinfo := com.ServiceBasicInfo{
 		AddressInfo: conf.Addr,

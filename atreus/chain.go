@@ -4,7 +4,8 @@ package atreus
 //参考：https://github.com/grpc-ecosystem/go-grpc-middleware/blob/master/chain.go
 
 import (
-	"github.com/pandaychen/grpc-wrapper-framework/common/vars"
+	"grpc-wrapper-framework/common/vars"
+
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -36,7 +37,7 @@ func createSubchain(us_interceptor grpc.UnaryServerInterceptor, us_handler grpc.
 	}
 }
 
-// Use method attachs a global inteceptor to the server
+// Use method attachs a global unary inteceptor to the server
 func (s *Server) Use(handlers ...grpc.UnaryServerInterceptor) *Server {
 	new_size := len(s.InnerHandlers) + len(handlers)
 	if new_size >= int(vars.ATREUS_MAX_INTERCEPTOR_NUM) {
@@ -51,6 +52,11 @@ func (s *Server) Use(handlers ...grpc.UnaryServerInterceptor) *Server {
 	//copy new handles
 	copy(mergedHandlers[len(s.InnerHandlers):], handlers)
 	s.InnerHandlers = mergedHandlers
+	return s
+}
+
+//TODO：添加stream interceptors chain
+func (s *Server) UseStreamInterceptor(handlers ...grpc.UnaryServerInterceptor) *Server {
 	return s
 }
 
