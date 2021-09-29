@@ -85,7 +85,7 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 	srv.Limiters = NewXRateLimiter(1, 1)
 
 	//Fill the interceptors
-	srv.Use(srv.Recovery(), srv.AtreusXRequestId(), srv.Metrics2Prometheus(), srv.Limit(srv.Limiters))
+	srv.Use(srv.Recovery(), srv.Timing(), srv.AtreusXRequestId(), srv.Metrics2Prometheus(), srv.Limit(srv.Limiters))
 
 	nodeinfo := com.ServiceBasicInfo{
 		AddressInfo: conf.Addr,

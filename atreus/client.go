@@ -71,7 +71,7 @@ func NewClient(config *config.AtreusSvcConfig) *Client {
 	}
 
 	//init client interceptors
-	cli.Use(cli.Recovery(), cli.CircuitBreaker())
+	cli.Use(cli.Recovery(), cli.Timing(), cli.CircuitBreaker())
 
 	//set dial options
 	//TODO：配置化
