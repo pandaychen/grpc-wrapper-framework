@@ -43,6 +43,8 @@ func (opts HistogramVecOption) Build() *HistogramVec {
 	prometheus.MustRegister(vec)
 	return &HistogramVec{
 		HistogramVec: vec,
+		//fix bugs
+		HistogramVecOption: &opts,
 	}
 }
 
