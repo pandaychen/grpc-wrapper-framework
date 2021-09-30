@@ -3,6 +3,7 @@ package atreus
 //A wrapper grpc-server
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"sync"
@@ -17,6 +18,7 @@ import (
 	"grpc-wrapper-framework/common/enums"
 	"grpc-wrapper-framework/common/vars"
 	"grpc-wrapper-framework/config"
+	auth "grpc-wrapper-framework/microservice/authentication"
 	com "grpc-wrapper-framework/microservice/discovery/common"
 	"grpc-wrapper-framework/pkg/xrand"
 
@@ -41,10 +43,14 @@ type Server struct {
 	InnerHandlers       []grpc.UnaryServerInterceptor  //拦截器数组
 	InnerStreamHandlers []grpc.StreamServerInterceptor //stream拦截器数组
 	ServiceReg          dis.ServiceRegisterWrapper
+	Auther              *auth.Authenticator //通用的验证接口
 
 	//limiter
 	Limiters *XRateLimiter
-	IsDebug  bool
+
+	//context
+	Ctx     context.Context
+	IsDebug bool
 }
 
 func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
@@ -65,6 +71,7 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		InnerHandlers:       make([]grpc.UnaryServerInterceptor, 0),
 		InnerStreamHandlers: make([]grpc.StreamServerInterceptor, 0),
 		Conf:                NewAtreusServerConfig2(conf),
+		Ctx:                 context.Background(),
 	}
 
 	//初始化gRPC-Server的keepalive参数
@@ -81,13 +88,18 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 
 	srv.RpcServer = grpc.NewServer(opt...)
 
+	//开启auth
+	if true {
+		srv.Auther = auth.NewAuthenticator(&srv.Ctx)
+	}
+
 	//init interceptors
 	srv.Limiters = NewXRateLimiter(1, 1)
 
 	//Fill the interceptors
 
 	//注意：Metrics2Prometheus必须放在Limiters的前面，否则，捕获不到Limiters返回的错误
-	srv.Use(srv.Recovery(), srv.Timing(), srv.AtreusXRequestId(), srv.Metrics2Prometheus(), srv.Limit(srv.Limiters))
+	srv.Use(srv.Recovery(), srv.Timing(), srv.AtreusXRequestId(), srv.Metrics2Prometheus(), srv.Limit(srv.Limiters), srv.Authorize())
 
 	nodeinfo := com.ServiceBasicInfo{
 		AddressInfo: conf.Addr,
