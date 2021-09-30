@@ -11,6 +11,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"grpc-wrapper-framework/common/pyerrors"
 )
 
 // 提供统一的limiter接口
@@ -26,7 +28,10 @@ func (s *Server) Limit(limiter Limiter) grpc.UnaryServerInterceptor {
 				//TODO: ADD sample log
 				s.Logger.Error("Limit exceed", zap.String("method", info.FullMethod))
 			}
-			return nil, status.Errorf(codes.ResourceExhausted, "%s is rejected by ratelimit middleware", info.FullMethod)
+			//在触发RPC调用前就return了，所以其他需要捕获错误的中间件需要设置在limiter之前
+			//return nil, status.Errorf(codes.ResourceExhausted, "%s is rejected by ratelimit middleware", info.FullMethod)
+			//for short metrics：atreusns_atreusss_server_counter_total{code="ErrRatelimit",method="/proto.GreeterService/SayHello",type="unary"} 2
+			return nil, status.Error(codes.ResourceExhausted, pyerrors.RatelimiterServiceReject)
 		}
 
 		return handler(ctx, req)
@@ -38,7 +43,6 @@ func (s *Server) LimitStream(limiter Limiter) grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if limiter.Allow(info.FullMethod) {
 			if s.IsDebug {
-				//TODO: ADD sample log
 				s.Logger.Error("Limit exceed", zap.String("method", info.FullMethod))
 			}
 			return status.Errorf(codes.ResourceExhausted, "%s is rejected by ratelimit middleware.", info.FullMethod)

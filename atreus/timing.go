@@ -38,12 +38,12 @@ func (c *Client) Timing() grpc.UnaryClientInterceptor {
 		err = invoker(ctx, method, req, reply, cc, opts...)
 		elapseTime := time.Since(startTime)
 		if err != nil {
-			c.Logger.Error("Timing RPC Call fail", zap.Any("elapse time", elapseTime), zap.String("servername", serverName), zap.Any("req", req), zap.String("errmsg", err.Error()))
+			c.Logger.Error("[Client]Timing RPC Call fail", zap.Any("elapse time", elapseTime), zap.String("servername", serverName), zap.Any("req", req), zap.String("errmsg", err.Error()))
 			return err
 		}
 
 		if elapseTime > slowThreshold {
-			c.Logger.Info("Timing RPC Call Slow", zap.Any("elapse time", elapseTime), zap.String("servername", serverName), zap.Any("req", req))
+			c.Logger.Info("[Client]Timing RPC Call Slow", zap.Any("elapse time", elapseTime), zap.String("servername", serverName), zap.Any("req", req))
 		}
 		return
 	}
@@ -59,6 +59,7 @@ func (s *Server) Timing() grpc.UnaryServerInterceptor {
 		}()
 
 		resp, err = handler(ctx, req)
+		metricRpcServerReqDuration.Observe(float64(time.Since(startTime)/time.Millisecond), args.FullMethod)
 		return
 	}
 }
@@ -72,11 +73,10 @@ func (s *Server) logTiming(ctx context.Context, method string, req interface{}, 
 	}
 	retstr, err := json.Marshal(req)
 	if err != nil {
-		s.Logger.Error("Timing RPC Call fail", zap.Any("elapse time", elapse_time), zap.String("servername", method), zap.String("errmsg", err.Error()), zap.String("callip", addr))
+		s.Logger.Error("[Server]Timing RPC Call fail", zap.Any("elapse time", elapse_time), zap.String("servername", method), zap.String("errmsg", err.Error()), zap.String("callip", addr))
 	}
 	if elapse_time > slowThreshold {
-		s.Logger.Info("Timing RPC Call Slow", zap.Any("elapse time", elapse_time), zap.String("servername", method), zap.String("callip", addr))
+		s.Logger.Info("[Server]Timing RPC Call Slow", zap.Any("elapse time", elapse_time), zap.String("servername", method), zap.String("callip", addr))
 	}
-	s.Logger.Info("Timing RPC Call", zap.Any("elapse time", elapse_time), zap.String("servername", method), zap.String("callip", addr), zap.String("content", string(retstr)))
-	//metricRpcServerReqDur.Observe(int64(timex.Since(startTime)/time.Millisecond), info.FullMethod)
+	s.Logger.Info("[Server]Timing RPC Call", zap.Any("elapse time", elapse_time), zap.String("servername", method), zap.String("callip", addr), zap.String("content", string(retstr)))
 }

@@ -85,6 +85,8 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 	srv.Limiters = NewXRateLimiter(1, 1)
 
 	//Fill the interceptors
+
+	//注意：Metrics2Prometheus必须放在Limiters的前面，否则，捕获不到Limiters返回的错误
 	srv.Use(srv.Recovery(), srv.Timing(), srv.AtreusXRequestId(), srv.Metrics2Prometheus(), srv.Limit(srv.Limiters))
 
 	nodeinfo := com.ServiceBasicInfo{
