@@ -1,6 +1,6 @@
 package config
 
-// 配置文件解析
+// 配置文件解析（viper封装）
 
 import (
 	"time"
@@ -217,9 +217,13 @@ func Init(file, suffix string) {
 	})
 }
 
-func InitConfigAbpath(dir, file, suffix string) {
+//初始化配置文件
+func InitConfigAbsolutePath(dir, file, suffix string) {
 	vipers = &Config{
 		viper.New(),
+	}
+	if dir == "" {
+		dir = DEFAULT_DIR
 	}
 	vipers.SetConfigType(suffix)
 	vipers.SetConfigName(file)

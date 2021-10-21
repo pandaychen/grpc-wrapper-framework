@@ -2,10 +2,11 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"time"
 )
 
-type AtreusSvcConfig struct {
+type SrvConfig struct {
 	Addr              string        `json:"address"`
 	Keepalive         bool          `json:"keepalive"`
 	Timeout           time.Duration `json:"timeout"`
@@ -14,36 +15,26 @@ type AtreusSvcConfig struct {
 	ForceCloseWait    time.Duration `json:"close_wait"`
 	KeepAliveInterval time.Duration `json:"keepalive_interval"`
 	KeepAliveTimeout  time.Duration `json:"keepalive_timeout"`
-	InitWeight        string        `json:"init_weight"`
-
+}
+type AtreusSvcConfig struct {
+	SrvConf *SrvConfig
 	//TLS config
-	TLSon     bool   `json:"tls_on"`
-	TLSCert   string `json:"tls_cert"`
-	TLSKey    string `json:"tls_key"`
-	TLSCaCert string `json:"tls_ca_cert"`
-
+	TlsConf *TlsConfig
 	//Service Register
-	RegisterType        string        `json:"reg_type"`
-	RegisterEndpoints   string        `json:"reg_endpoint"`
-	RegisterTTL         time.Duration `json:"reg_ttl"`
-	RegisterAPIOn       bool          `json:"reg_api_on"`
-	RegisterRootPath    string        `json:"reg_root_path"`
-	RegisterService     string        `json:"reg_service_name"`
-	RegisterServiceVer  string        `json:"reg_service_version"`
-	RegisterServiceAddr string        `json:"reg_service_addr"`
-
+	RegistryConf *RegistryConfig
 	//Limiter
-	LimiterType string `json:"limiter_type"`
-	LimiterRate int    `json:"limiter_rate"`
-	LimiterSize int    `json:"limiter_size"`
+	LimiterConf *LimiterConfig
+	//Etcd
+	EtcdConf *EtcdConfig
 
-	EtcdConfig
+	WeightConf *WeightConfig
 }
 
 //global
 var atreus_svc_config AtreusSvcConfig
 
 func GetAtreusSvcConfig() *AtreusSvcConfig {
+	//lock for hot reload?
 	return &atreus_svc_config
 }
 
@@ -58,37 +49,64 @@ func AtreusSvcConfigInit() {
 		panic(errors.New("find grpc service config error"))
 		return
 	}
+	atreus_svc_config.SrvConf = new(SrvConfig)
+	atreus_svc_config.SrvConf.Addr = SubconfigServer.GetString("address")
+	atreus_svc_config.SrvConf.Keepalive = SubconfigServer.MustBool("keepalive", false)
+	atreus_svc_config.SrvConf.Timeout = SubconfigServer.MustDuration("timeout", time.Second*10)
+	atreus_svc_config.SrvConf.IdleTimeout = SubconfigServer.MustDuration("idle_timeout", time.Second*10)
+	atreus_svc_config.SrvConf.MaxLifeTime = SubconfigServer.MustDuration("max_life", time.Second*10)
+	atreus_svc_config.SrvConf.ForceCloseWait = SubconfigServer.MustDuration("close_wait", time.Second*10)
+	atreus_svc_config.SrvConf.KeepAliveInterval = SubconfigServer.MustDuration("keepalive_interval", time.Second*10)
+	atreus_svc_config.SrvConf.KeepAliveTimeout = SubconfigServer.MustDuration("keepalive_timeout", time.Second*10)
 
-	atreus_svc_config.Addr = SubconfigServer.GetString("address")
-	atreus_svc_config.Keepalive = SubconfigServer.MustBool("keepalive", false)
-	atreus_svc_config.Timeout = SubconfigServer.MustDuration("timeout", time.Second*10)
-	atreus_svc_config.IdleTimeout = SubconfigServer.MustDuration("idle_timeout", time.Second*10)
-	atreus_svc_config.MaxLifeTime = SubconfigServer.MustDuration("max_life", time.Second*10)
-	atreus_svc_config.ForceCloseWait = SubconfigServer.MustDuration("close_wait", time.Second*10)
-	atreus_svc_config.KeepAliveInterval = SubconfigServer.MustDuration("keepalive_interval", time.Second*10)
-	atreus_svc_config.KeepAliveTimeout = SubconfigServer.MustDuration("keepalive_timeout", time.Second*10)
-	atreus_svc_config.TLSon = SubconfigServer.MustBool("tls_on", false)
-	atreus_svc_config.TLSCert = SubconfigServer.GetString("tls_cert")
-	atreus_svc_config.TLSKey = SubconfigServer.GetString("tls_key")
-	atreus_svc_config.TLSCaCert = SubconfigServer.GetString("tls_ca_cert")
-	atreus_svc_config.RegisterType = SubconfigServer.MustString("reg_type", "etcd")
-	atreus_svc_config.RegisterEndpoints = SubconfigServer.MustString("reg_endpoint", "http://127.0.0.1:2379")
-	atreus_svc_config.RegisterTTL = SubconfigServer.MustDuration("reg_ttl", 10*time.Second)
-	atreus_svc_config.RegisterAPIOn = SubconfigServer.MustBool("reg_api_on", false)
-	atreus_svc_config.RegisterRootPath = SubconfigServer.MustString("reg_root_path", "/")
-	atreus_svc_config.RegisterService = SubconfigServer.MustString("reg_service_name", "test")
-	atreus_svc_config.RegisterServiceVer = SubconfigServer.MustString("reg_service_version", "v1.0")
-	atreus_svc_config.RegisterServiceAddr = SubconfigServer.MustString("reg_service_addr", atreus_svc_config.Addr)
+	atreus_svc_config.TlsConf = new(TlsConfig)
+	SubTlsconfig := Config.Use("security")
+	if SubTlsconfig == nil {
+		//not set
+	} else {
+		atreus_svc_config.TlsConf.TLSon = SubTlsconfig.MustBool("tls_on", false)
+		atreus_svc_config.TlsConf.TLSCert = SubTlsconfig.GetString("tls_cert")
+		atreus_svc_config.TlsConf.TLSKey = SubTlsconfig.GetString("tls_key")
+		atreus_svc_config.TlsConf.TLSCaCert = SubTlsconfig.GetString("tls_ca_cert")
+	}
 
-	atreus_svc_config.LimiterType = SubconfigServer.GetString("limiter_type")
-	atreus_svc_config.LimiterRate = SubconfigServer.GetInt("limiter_rate")
-	atreus_svc_config.LimiterSize = SubconfigServer.GetInt("limiter_size")
+	atreus_svc_config.RegistryConf = new(RegistryConfig)
+	SubRegconfig := Config.Use("register")
+	if SubRegconfig == nil {
+		//not set
+	} else {
+		atreus_svc_config.RegistryConf.RegisterType = SubRegconfig.MustString("reg_type", "etcd")
+		atreus_svc_config.RegistryConf.RegisterEndpoints = SubRegconfig.MustString("reg_endpoint", "http://127.0.0.1:2379")
+		atreus_svc_config.RegistryConf.RegisterTTL = SubRegconfig.MustDuration("reg_ttl", 10*time.Second)
+		atreus_svc_config.RegistryConf.RegisterAPIOn = SubRegconfig.MustBool("reg_api_on", false)
+		atreus_svc_config.RegistryConf.RegisterRootPath = SubRegconfig.MustString("reg_root_path", "/")
+		atreus_svc_config.RegistryConf.RegisterService = SubRegconfig.MustString("reg_service_name", "test")
+		atreus_svc_config.RegistryConf.RegisterServiceVer = SubRegconfig.MustString("reg_service_version", "v1.0")
+		atreus_svc_config.RegistryConf.RegisterServiceAddr = SubRegconfig.MustString("reg_service_addr", atreus_svc_config.SrvConf.Addr)
+	}
+
+	atreus_svc_config.LimiterConf = new(LimiterConfig)
+	SubLimiterconfig := Config.Use("limiter")
+	if SubLimiterconfig == nil {
+		//not set
+	} else {
+		atreus_svc_config.LimiterConf.LimiterType = SubLimiterconfig.GetString("type")
+		atreus_svc_config.LimiterConf.LimiterRate = SubLimiterconfig.GetInt("rate")
+		atreus_svc_config.LimiterConf.LimiterSize = SubLimiterconfig.GetInt("bucketsize")
+	}
+
+	atreus_svc_config.WeightConf = new(WeightConfig)
+	SubWeigthConfig := Config.Use("weight")
+	if SubLimiterconfig == nil {
+		//not set
+	} else {
+		atreus_svc_config.WeightConf.Weight = SubWeigthConfig.GetString("init")
+	}
+
 }
 
-/*
 func main() {
-	InitConfigAbpath("./", "grpc_server", "yaml")
+	InitConfigAbsolutePath("./", "server", "yaml")
 	AtreusSvcConfigInit()
 	fmt.Println(GetAtreusSvcConfig())
 }
-*/
