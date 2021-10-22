@@ -1,16 +1,16 @@
 package atreus
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
 	"grpc-wrapper-framework/common/enums"
 	"grpc-wrapper-framework/common/vars"
 	"grpc-wrapper-framework/config"
+	"grpc-wrapper-framework/logger"
 	dis "grpc-wrapper-framework/microservice/discovery"
 	com "grpc-wrapper-framework/microservice/discovery/common"
-
-	zaplog "github.com/pandaychen/goes-wrapper/zaplog"
 
 	"github.com/sony/gobreaker"
 	"go.uber.org/zap"
@@ -18,20 +18,21 @@ import (
 	"google.golang.org/grpc"
 )
 
+// 客户端封装结构
 type Client struct {
 	Logger        *zap.Logger
-	Conf          *AtreusClientConfig //指向 客户端配置
+	Conf          *config.AtreusCliConfig //客户端配置
 	Lock          *sync.RWMutex
 	DialOpts      []grpc.DialOption             //grpc-客户端option
 	InnerHandlers []grpc.UnaryClientInterceptor //GRPC拦截器数组
-
-	RpcPersistClient *grpc.ClientConn
 
 	CliResolver dis.ServiceResolverWrapper
 
 	//sony breaker
 	CbBreakerMap    map[string]*gobreaker.CircuitBreaker
 	CbBreakerConfig gobreaker.Settings //这里暂时全局配置
+
+	RpcPersistClient *grpc.ClientConn
 }
 
 func (c *Client) AddCliOpt(opts ...grpc.DialOption) *Client {
@@ -39,31 +40,59 @@ func (c *Client) AddCliOpt(opts ...grpc.DialOption) *Client {
 	return c
 }
 
-func NewClient(config *config.AtreusSvcConfig) *Client {
+func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 	var (
-		err  error
-		conn *grpc.ClientConn
+		err       error
+		conn      *grpc.ClientConn
+		is_direct bool
 	)
 
-	logger, _ := zaplog.ZapLoggerInit(DEFAULT_ATREUS_SERVICE_NAME)
+	logconf := logger.LogConfig{
+		ServiceName: DEFAULT_ATREUS_SERVICE_NAME,
+	}
 
+	logger, err := logconf.CreateNewLogger(config.LogConf)
+	if err != nil {
+		return nil, err
+	}
 	cli := &Client{
 		Logger:        logger,
 		Lock:          new(sync.RWMutex),
 		InnerHandlers: make([]grpc.UnaryClientInterceptor, 0),
-		Conf:          NewAtreusClientConfig2(config),
+		Conf:          config,
 		CbBreakerMap:  make(map[string]*gobreaker.CircuitBreaker),
 	}
 
-	cli.CliResolver, err = dis.NewDiscoveryResolver(&com.ResolverConfig{
-		RegisterType:   enums.RegType(config.RegisterType),
-		RootName:       config.RegisterRootPath,
-		ServiceName:    config.RegisterService,
-		ServiceVersion: config.RegisterServiceVer,
-		Endpoint:       config.RegisterEndpoints,
-		Schemename:     cli.Conf.DialScheme,
-		Logger:         logger,
-	})
+	switch config.CliConf.DialScheme {
+	case string(enums.RET_TYPE_DIRECT):
+		is_direct = true
+		cli.DialOpts = append(cli.DialOpts, grpc.WithBlock())
+	case string(enums.REG_TYPE_DNS):
+		cli.DialOpts = append(cli.DialOpts, grpc.WithBlock())
+	case string(enums.REG_TYPE_ETCD):
+		cli.CliResolver, err = dis.NewDiscoveryResolver(&com.ResolverConfig{
+			RegisterType:   enums.RegType(config.RegistryConf.RegisterType),
+			RootName:       config.RegistryConf.RegisterRootPath,
+			ServiceName:    config.RegistryConf.RegisterService,
+			ServiceVersion: config.RegistryConf.RegisterServiceVer,
+			Endpoint:       config.RegistryConf.RegisterEndpoints,
+			Schemename:     config.CliConf.DialScheme,
+			Logger:         logger,
+		})
+	case string(enums.REG_TYPE_CONSUL):
+		return nil, errors.New("not support dial scheme")
+	default:
+		return nil, errors.New("not support dial scheme")
+	}
+
+	if !is_direct {
+		switch config.CliConf.LbType {
+		case string(enums.LB_TYPE_RR):
+			cli.DialOpts = append(cli.DialOpts, grpc.WithBalancerName("round_robin"))
+		default:
+			return nil, errors.New("not support lb type")
+		}
+	}
 
 	if err != nil {
 		logger.Error("[NewClient]NewDiscoveryResolver error", zap.String("errmsg", err.Error()))
@@ -71,36 +100,46 @@ func NewClient(config *config.AtreusSvcConfig) *Client {
 	}
 
 	//init client interceptors
-	cli.Use(cli.Recovery(), cli.Timing(), cli.CircuitBreaker())
+	cli.Use(cli.Recovery(), cli.Timing())
 
 	//set dial options
-	//TODO：配置化
-	cli.DialOpts = append(cli.DialOpts, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithBalancerName("round_robin"), grpc.WithUnaryInterceptor(cli.BuildUnaryInterceptorChain2()))
+	cli.DialOpts = append(cli.DialOpts, grpc.WithInsecure(), grpc.WithUnaryInterceptor(cli.BuildUnaryInterceptorChain2()))
 
-	if cli.Conf.k8sSign && cli.Conf.DnsSign {
-		//support K8S environment
-		dial_address := fmt.Sprintf("dns:///%s:%d", cli.Conf.ServiceName, cli.Conf.ServicePort)
+	if config.BreakerConf.On {
+		//init breaker config
+		cli.CbBreakerConfig.Name = ""
+		cli.CbBreakerConfig.ReadyToTrip = func(counts gobreaker.Counts) bool {
+			failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
+			return counts.Requests >= 3 && failureRatio >= 0.6
+		}
+		//add breaker
+		cli.Use(cli.CircuitBreaker())
+	}
+
+	switch config.CliConf.DialScheme {
+	case string(enums.RET_TYPE_DIRECT):
+		dial_address := fmt.Sprintf("%s:%d", config.CliConf.DialAddress, config.CliConf.DialPort)
 		conn, err = grpc.Dial(dial_address, cli.DialOpts...)
-	} else {
-		//TODO：FIX etcd config
-		conn, err = grpc.Dial("etcdv3"+":///", cli.DialOpts...)
+	case string(enums.REG_TYPE_DNS):
+		//support K8S environment
+		dial_address := fmt.Sprintf("dns:///%s:%d", config.SrvDnsConf.SrvName, config.SrvDnsConf.SrvPort)
+		conn, err = grpc.Dial(dial_address, cli.DialOpts...)
+	case string(enums.REG_TYPE_ETCD):
+		conn, err = grpc.Dial(fmt.Sprintf("%s:///", cli.CliResolver.Scheme()), cli.DialOpts...)
+	case string(enums.REG_TYPE_CONSUL):
+		return nil, errors.New("not support dial scheme")
+	default:
+		return nil, errors.New("not support dial scheme")
 	}
 
 	if err != nil {
 		logger.Error("[NewClient]Dial Service error", zap.String("errmsg", err.Error()))
-		panic(err)
-	}
-
-	//init breaker config
-	cli.CbBreakerConfig.Name = ""
-	cli.CbBreakerConfig.ReadyToTrip = func(counts gobreaker.Counts) bool {
-		failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
-		return counts.Requests >= 3 && failureRatio >= 0.6
+		return nil, err
 	}
 
 	cli.RpcPersistClient = conn
 
-	return cli
+	return cli, nil
 }
 
 // Use方法为grpc的客户端添加一个全局拦截器，传入参数是多个grpc.UnaryClientInterceptor
