@@ -16,18 +16,30 @@ type SrvConfig struct {
 	KeepAliveInterval time.Duration `json:"keepalive_interval"`
 	KeepAliveTimeout  time.Duration `json:"keepalive_timeout"`
 }
+
 type AtreusSvcConfig struct {
+	//Server config
 	SrvConf *SrvConfig
+
 	//TLS config
 	TlsConf *TlsConfig
+
 	//Service Register
 	RegistryConf *RegistryConfig
+
 	//Limiter
 	LimiterConf *LimiterConfig
 	//Etcd
 	EtcdConf *EtcdConfig
 
+	//Weight
 	WeightConf *WeightConfig
+
+	//Log
+	LogConf *LogConfig
+
+	//Auth
+	AuthConf *AuthConfig
 }
 
 //global
@@ -75,6 +87,7 @@ func AtreusSvcConfigInit() {
 	if SubRegconfig == nil {
 		//not set
 	} else {
+		atreus_svc_config.RegistryConf.RegOn = SubRegconfig.MustBool("reg_on", true)
 		atreus_svc_config.RegistryConf.RegisterType = SubRegconfig.MustString("reg_type", "etcd")
 		atreus_svc_config.RegistryConf.RegisterEndpoints = SubRegconfig.MustString("reg_endpoint", "http://127.0.0.1:2379")
 		atreus_svc_config.RegistryConf.RegisterTTL = SubRegconfig.MustDuration("reg_ttl", 10*time.Second)
@@ -90,6 +103,7 @@ func AtreusSvcConfigInit() {
 	if SubLimiterconfig == nil {
 		//not set
 	} else {
+		atreus_svc_config.LimiterConf.On = SubLimiterconfig.MustBool("on", false)
 		atreus_svc_config.LimiterConf.LimiterType = SubLimiterconfig.GetString("type")
 		atreus_svc_config.LimiterConf.LimiterRate = SubLimiterconfig.GetInt("rate")
 		atreus_svc_config.LimiterConf.LimiterSize = SubLimiterconfig.GetInt("bucketsize")
@@ -103,6 +117,25 @@ func AtreusSvcConfigInit() {
 		atreus_svc_config.WeightConf.Weight = SubWeigthConfig.GetString("init")
 	}
 
+	atreus_svc_config.LogConf = new(LogConfig)
+	SubLogConfig := vipers.Use("log")
+	if SubLogConfig == nil {
+		//not set
+	} else {
+		atreus_svc_config.LogConf.FileName = SubLogConfig.MustString("file_name", "../log/server.log")
+		atreus_svc_config.LogConf.MaxSize = SubLogConfig.MustInt("max_size", 100)
+		atreus_svc_config.LogConf.MaxBackups = SubLogConfig.MustInt("max_backups", 10)
+		atreus_svc_config.LogConf.MaxAge = SubLogConfig.MustInt("max_age", 20)
+		atreus_svc_config.LogConf.Compress = SubLogConfig.MustBool("compress", true)
+	}
+
+	atreus_svc_config.AuthConf = new(AuthConfig)
+	SubAuthconfig := Config.Use("auth")
+	if SubAuthconfig == nil {
+		//not set
+	} else {
+		atreus_svc_config.AuthConf.On = SubAuthconfig.MustBool("on", false)
+	}
 }
 
 func main() {
