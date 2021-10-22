@@ -27,11 +27,12 @@ type EtcdResolver struct {
 	Clientconn resolver.ClientConn
 	Wg         sync.WaitGroup
 	//CloseCh    chan struct{} // 关闭 channel
-	Logger *zap.Logger
 
 	//control
 	Ctx    *context.Context
 	Cancel context.CancelFunc
+
+	Logger *zap.Logger
 }
 
 func NewResolverRegister(config *com.ResolverConfig) (*EtcdResolver, error) {

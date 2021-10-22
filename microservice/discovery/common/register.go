@@ -38,8 +38,8 @@ type RegisterConfig struct {
 //
 func (c *RegisterConfig) BuildEtcdKey() string {
 	if strings.HasPrefix(c.RootName, "/") {
-		return fmt.Sprintf("%s/%s/%s/%s", c.RootName, c.ServiceName, c.ServiceVersion, c.ServiceNodeID)
+		return fmt.Sprintf("%s/%s/%s/%s%s", c.RootName, c.ServiceName, c.ServiceVersion, c.ServiceNodeID, c.RandomSuffix)
 	} else {
-		return fmt.Sprintf("/%s/%s/%s/%s", c.RootName, c.ServiceName, c.ServiceVersion, c.ServiceNodeID)
+		return fmt.Sprintf("/%s/%s/%s/%s%s", c.RootName, c.ServiceName, c.ServiceVersion, c.ServiceNodeID, c.RandomSuffix)
 	}
 }
