@@ -27,6 +27,7 @@ func TimingOld(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
 	return resp, err
 }
 
+// 客户端接口调用耗时拦截器
 // Timing is an interceptor that logs the processing time (for client)
 func (c *Client) Timing() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error) {

@@ -63,7 +63,7 @@ func composeReqIdFromContext(ctx context.Context) AtreusReqId {
 	return AtreusReqId(fmt.Sprintf("%s,%s", reqID, newid))
 }
 
-func (s *Server) AtreusXRequestId() grpc.UnaryServerInterceptor {
+func (s *Server) XRequestId() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		var newReqID string
 		newReqID = string(composeReqIdFromContext(ctx))
