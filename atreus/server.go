@@ -6,7 +6,10 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	etcdv3 "go.etcd.io/etcd/client/v3"
@@ -15,6 +18,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/reflection"
 
 	"grpc-wrapper-framework/common/enums"
 	"grpc-wrapper-framework/common/vars"
@@ -28,6 +32,7 @@ import (
 
 const (
 	DEFAULT_ATREUS_SERVICE_NAME = "atreus_svc"
+	DEFAULT_TIME_TO_QUIT        = 5 * time.Second
 )
 
 //grpc-server核心结构（封装）
@@ -166,4 +171,61 @@ func (s *Server) ReloadConfig() error {
 	s.Conf = config.GetAtreusSvcConfig()
 	s.ConfLock.Unlock()
 	return nil
+}
+
+// 启动服务
+func (s *Server) Run() error {
+	listener, err := net.Listen("tcp", s.Conf.SrvConf.Addr)
+	if err != nil {
+		s.Logger.Error("[Run]failed to listen", zap.Any("errmsg", err))
+		return err
+	}
+	reflection.Register(s.RpcServer)
+	return s.Serve(listener)
+}
+
+// 优雅退出
+func (s *Server) Shutdown(ctx context.Context) error {
+	var (
+		err error
+		ch  = make(chan struct{})
+	)
+	go func() {
+		// 调用grpc的GracefulStop()
+		s.RpcServer.GracefulStop()
+		close(ch)
+	}()
+	select {
+	//force to stop
+	case <-ctx.Done():
+		s.RpcServer.Stop()
+		err = ctx.Err()
+	case <-ch:
+		return nil
+	}
+	return err
+}
+
+func (s *Server) ExitWithSignalHandler() {
+	var (
+		ch = make(chan os.Signal, 1)
+	)
+	signal.Notify(ch, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
+	for {
+		sig := <-ch
+		switch sig {
+		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
+			s.Logger.Info("Recv Signal to Quit", zap.String("signal", sig.String()))
+			ctx, cancel := context.WithTimeout(s.Ctx, DEFAULT_TIME_TO_QUIT)
+			defer cancel()
+			//gracefully shutdown
+			s.Shutdown(ctx)
+			return
+		//TODO：add hot reload
+		case syscall.SIGHUP:
+			return
+		default:
+			return
+		}
+	}
 }
