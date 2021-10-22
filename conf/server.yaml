@@ -22,26 +22,26 @@ atreus:
     etcd_on: true #from https://github.com/pandaychen/etcd_tools/blob/master/config.go
     etcd_endpoint: "http://127.0.0.1:2379"
     ttl: 10s
-    reg_api_on: false
-    reg_root_path: "/"
     reg_service_name: "test"
     reg_service_version: "v1.0"
     reg_service_addr: "127.0.0.1:12345"
   weight:
     init: 100
   limiter:
+    on: true
     type: "token" ###令牌桶token/漏桶leaky
     rate: 10
     bucketsize: 100
+  auth:
+    on: true
+    type: "normal"
 
 log:
-  path: "./log"
-  level: "debug"
-  maxSize: 128
-  maxBackups: 10
-  maxAge: 7
-  compress: true
-  showConsole: true
+  file_name: "./log/server.log"
+  max_size: 128
+  max_backups: 10
+  max_age: 7
+  compress: false
 
 mysql:
   default:

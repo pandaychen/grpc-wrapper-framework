@@ -1,0 +1,35 @@
+atreus:
+  client:
+    dial_address: "127.0.0.1"
+    dial_port: 12345
+    dial_scheme: "etcd" #direct/dns/etcd/consul
+    env: "normal" #k8s/normal
+    lbtype: "rr" #rr/wrr/p2c/random/consistent
+  dnsservice:
+    name: "test-service"
+    port: 8088
+  security:
+    tls_on: true
+    tls_cert: "../pem/server.crt"
+    tls_key: "../pem/server.key"
+    tls_ca_cert: ""
+  discovery:
+    reg_type: "etcd"
+    reg_endpoint: "http://127.0.0.1:2379"
+    reg_ttl: 10s
+    reg_api_on: false
+    reg_root_path: "/atreus"
+    reg_service_name: "test"
+    reg_service_version: "v1.0"
+  auth:
+    on: true
+    type: "normal"
+  breaker:
+    on: false
+
+log:
+  file_name: "./log/client.log"
+  max_size: 128
+  max_backups: 10
+  max_age: 7
+  compress: false
