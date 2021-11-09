@@ -2,10 +2,9 @@ package etcdv3
 
 import (
 	"encoding/json"
+	com "grpc-wrapper-framework/microservice/discovery/common"
 	"sync"
 	"time"
-
-	com "grpc-wrapper-framework/microservice/discovery/common"
 
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	etcd3 "go.etcd.io/etcd/client/v3"

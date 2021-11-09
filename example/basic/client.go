@@ -13,35 +13,28 @@ import (
 )
 
 func main() {
-
-	s := &config.AtreusSvcConfig{
-		Addr:                "127.0.0.1:50001",
-		RegisterType:        "etcd",
-		RegisterEndpoints:   "http://127.0.0.1:2379;",
-		RegisterRootPath:    "/t",
-		RegisterService:     "test",
-		RegisterServiceVer:  "1.0",
-		RegisterServiceAddr: "127.0.0.1:50001",
-	}
+	config.InitConfigAbsolutePath("./", "client", "yaml")
+	config.AtreusCliConfigInit()
 	/*
 		conn, err := grpc.Dial("127.0.0.1:50001", grpc.WithInsecure())
 		if err != nil {
 			panic(err)
 		}
 	*/
-	conn := atreus.NewClient(s)
+	conn, _ := atreus.NewClient(config.GetAtreusCliConfig())
 
 	client := pb.NewGreeterServiceClient(conn.RpcPersistClient)
 	//add request
-	ctx := metadata.NewOutgoingContext(context.Background(), metadata.Pairs(atreus.DefaultAtreusReqIDKey, "cvalue"))
+	ctx := metadata.NewOutgoingContext(context.Background(), metadata.Pairs(atreus.DefaultAtreusReqIDKey, "cvalue", "app", "test", "token", "test", "method", "normal"))
 	var fail int
-	for i := 0; i < 1000; i++ {
-		_, err := client.SayHello(ctx, &pb.HelloRequest{Name: "hello golang"})
+	for i := 0; i < 10; i++ {
+		resp, err := client.SayHello(ctx, &pb.HelloRequest{Name: "hello golang"})
 		if err != nil {
 			fmt.Println(err)
 			fail++
+		} else {
+			fmt.Printf("normal hello: resp=%v, error=%v\n", resp, err)
 		}
-		//fmt.Printf("normal hello: resp=%v, error=%v\n", resp, err)
 	}
 	fmt.Println(fail)
 }

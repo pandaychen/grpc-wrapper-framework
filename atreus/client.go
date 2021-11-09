@@ -134,7 +134,7 @@ func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 
 	if err != nil {
 		logger.Error("[NewClient]Dial Service error", zap.String("errmsg", err.Error()))
-		return nil, err
+		panic(err)
 	}
 
 	cli.RpcPersistClient = conn

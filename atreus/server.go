@@ -215,14 +215,11 @@ func (s *Server) ExitWithSignalHandler() {
 		sig := <-ch
 		switch sig {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
-			s.Logger.Info("Recv Signal to Quit", zap.String("signal", sig.String()))
+			s.Logger.Info("Recv Signal to Quit", zap.String("signal",sig.String()))
 			ctx, cancel := context.WithTimeout(s.Ctx, DEFAULT_TIME_TO_QUIT)
 			defer cancel()
-			//gracefully shutdown
+			//gracefully shutdown with timeout
 			s.Shutdown(ctx)
-			return
-		//TODO：add hot reload
-		case syscall.SIGHUP:
 			return
 		default:
 			return

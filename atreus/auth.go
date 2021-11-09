@@ -1,17 +1,14 @@
 package atreus
 
 import (
-	auth "grpc-wrapper-framework/microservice/authentication"
+	//auth "grpc-wrapper-framework/microservice/authentication"
 
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-
-	"context"
-
-	"google.golang.org/grpc"
 )
 
+/*
 // AuthorizeStream：Server端Stream认证拦截器
 func (s *Server) AuthorizeStream(authenticator *auth.Authenticator) grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
@@ -24,6 +21,7 @@ func (s *Server) AuthorizeStream(authenticator *auth.Authenticator) grpc.StreamS
 		return handler(srv, stream)
 	}
 }
+*/
 
 // Authorize ：Server端认证的一元拦截器
 func (s *Server) Authorize() grpc.UnaryServerInterceptor {

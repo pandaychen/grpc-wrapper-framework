@@ -23,6 +23,10 @@ type xServer struct {
 func main() {
 	flag.Parse()
 
+	//init logger
+	//lc := config.LogConfig{}
+	//grpclog.SetLoggerV2(lc.CreateNewLogger("grpc-basic-service"))
+
 	BindAddr := fmt.Sprintf("127.0.0.1:%d", *port)
 
 	config.InitConfigAbsolutePath("./", "server", "yaml")
