@@ -3,7 +3,7 @@ package config
 import "time"
 
 type RegistryConfig struct {
-	RegOn               bool          `json:"reg_on"`
+	RegOn               bool          `json:"on-off"`
 	RegisterType        string        `json:"reg_type"`
 	RegisterEndpoints   string        `json:"reg_endpoint"`
 	RegisterTTL         time.Duration `json:"reg_ttl"`

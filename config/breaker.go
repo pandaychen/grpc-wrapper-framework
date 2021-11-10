@@ -1,5 +1,5 @@
 package config
 
 type BreakerConfig struct {
-	On bool `json:"on"`
+	On bool `json:"on-off"`
 }
