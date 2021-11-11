@@ -122,6 +122,8 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		srv.Use(srv.Authorize())
 	}
 
+	srv.Use(srv.SrvValidator())
+
 	if conf.RegistryConf.RegOn {
 		nodeinfo := discom.ServiceBasicInfo{
 			AddressInfo: conf.SrvConf.Addr,
@@ -215,7 +217,7 @@ func (s *Server) ExitWithSignalHandler() {
 		sig := <-ch
 		switch sig {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
-			s.Logger.Info("Recv Signal to Quit", zap.String("signal",sig.String()))
+			s.Logger.Info("Recv Signal to Quit", zap.String("signal", sig.String()))
 			ctx, cancel := context.WithTimeout(s.Ctx, DEFAULT_TIME_TO_QUIT)
 			defer cancel()
 			//gracefully shutdown with timeout
