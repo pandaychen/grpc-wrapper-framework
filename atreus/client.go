@@ -116,6 +116,8 @@ func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 		cli.Use(cli.CircuitBreaker())
 	}
 
+	cli.Use(cli.ClientValidator())
+
 	switch config.CliConf.DialScheme {
 	case string(enums.RET_TYPE_DIRECT):
 		dial_address := fmt.Sprintf("%s:%d", config.CliConf.DialAddress, config.CliConf.DialPort)
