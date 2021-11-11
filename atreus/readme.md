@@ -4,6 +4,8 @@ atreus 是一个基于 gRPC 封装的脚手架
 
 ## go.validator 接入 proto 验证方法
 
+#### 使用 github.com/mwitkow/go-proto-validators/protoc-gen-govalidators 包
+
 1. 设置 `GOPATH`，如本机的 `GOPATH` 地址为 `/root/go/`
 
 2. 下载 `https://github.com/protocolbuffers/protobuf` 项目
@@ -56,3 +58,68 @@ message HelloReply {
 ```bash
 protoc    --proto_path=${GOPATH}/src   --proto_path=${GOPATH}/src/github.com/google/protobuf/src   --proto_path=.   --go_out=.   --govalidators_out=. --go_out=plugins=grpc:./   *.proto
 ```
+
+#### 使用 github.com/envoyproxy/protoc-gen-validate
+
+1.  安装 `protoc-gen-validate` 工具
+
+```bash
+go get -d github.com/envoyproxy/protoc-gen-validate
+cd ${GOPATH}/src/github.com/envoyproxy/protoc-gen-validate
+make build
+```
+
+安装成功：
+
+```bash
+GOBIN=/root/go/src/github.com/envoyproxy/protoc-gen-validate/bin go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.27.1
+protoc -I . \
+        --plugin=protoc-gen-go=/root/go//bin/protoc-gen-go \
+        --go_opt=paths=source_relative \
+        --go_out="Mvalidate/validate.proto=github.com/envoyproxy/protoc-gen-validate/validate,Mgoogle/protobuf/any.proto=google.golang.org/protobuf/types/known/anypb,Mgoogle/protobuf/duration.proto=google.golang.org/protobuf/types/known/durationpb,Mgoogle/protobuf/struct.proto=google.golang.org/protobuf/types/known/structpb,Mgoogle/protobuf/timestamp.proto=google.golang.org/protobuf/types/known/timestamppb,Mgoogle/protobuf/wrappers.proto=google.golang.org/protobuf/types/known/wrapperspb,Mgoogle/protobuf/descriptor.proto=google.golang.org/protobuf/types/descriptorpb:." validate/validate.proto
+go install .
+go: downloading github.com/lyft/protoc-gen-star v0.5.3
+go: downloading github.com/iancoleman/strcase v0.2.0
+```
+
+2. 编写 proto 文件，如下：
+
+```protobuf
+syntax = "proto3";
+
+// protoc -I=. *.proto --go_out=plugins=grpc:.
+
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.helloworld";
+option java_outer_classname = "HelloWorldProto";
+
+
+import "validate/validate.proto";
+
+package proto;
+
+//a common RPC names with Serivce suffix
+service GreeterService {
+    rpc SayHello (HelloRequest) returns (HelloReply) {}
+    //rpc ErrorSayHello(HelloRequest) returns  (HelloReply) {}
+}
+
+message HelloRequest {
+    string name = 1  [(validate.rules).string = {
+                      pattern:   "^[a-z]{2,5}$",
+                      max_bytes: 256,
+                   }];
+}
+
+message HelloReply {
+    string message = 1;
+}
+```
+
+3. 编译 proto 文件，生成 `pb.go` 及 `pb.validator.go` ，完成。
+
+```bash
+protoc   -I .   -I ${GOPATH}/src   -I ${GOPATH}/src/github.com/envoyproxy/protoc-gen-validate     --validate_out="lang=go:." --go_out=plugins=grpc:./   *.proto
+```
+
+4. 规则可见：https://github.com/envoyproxy/protoc-gen-validate#constraint-rules
