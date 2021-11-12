@@ -52,6 +52,8 @@ type Server struct {
 	//context
 	Ctx     context.Context
 	IsDebug bool
+	//acl
+	CallerIp []string
 
 	//wrapper Server
 	RpcServer *grpc.Server //原生Server
@@ -107,6 +109,10 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 
 	//注意：Metrics2Prometheus必须放在Limiters的前面，否则，捕获不到Limiters返回的错误
 	srv.Use(srv.Recovery(), srv.Timing(), srv.XRequestId(), srv.Metrics2Prometheus())
+
+	if conf.AclConf.On {
+		srv.CallerIp = append(srv.CallerIp, conf.AclConf.WhiteIpList...)
+	}
 
 	if conf.LimiterConf.On {
 		srv.Limiters = NewXRateLimiter(rate.Limit(conf.LimiterConf.LimiterRate), conf.LimiterConf.LimiterSize)

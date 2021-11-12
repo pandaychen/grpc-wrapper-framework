@@ -40,6 +40,9 @@ type AtreusSvcConfig struct {
 
 	//Auth
 	AuthConf *AuthConfig
+
+	//ACL
+	AclConf *AclConfig
 }
 
 //global
@@ -125,6 +128,17 @@ func AtreusSvcConfigInit() {
 		atreus_svc_config.AuthConf.On = SubAuthconfig.GetBool("on-off")
 	}
 
+	atreus_svc_config.AclConf = new(AclConfig)
+	SubAclconfig := Config.Use("acl")
+	if SubAclconfig == nil {
+		//not set
+	} else {
+		atreus_svc_config.AclConf.On = SubAclconfig.GetBool("on-off")
+		atreus_svc_config.AclConf.WhiteIpList = SubAclconfig.MustStringSlice("white_list", []string{"127.0.0.1/32"})
+	}
+
+	//fmt.Println(atreus_svc_config.AclConf.WhiteIpList)
+
 	atreus_svc_config.LogConf = new(LogConfig)
 	SubLogConfig := vipers.Use("log")
 	if SubLogConfig == nil {
@@ -136,6 +150,7 @@ func AtreusSvcConfigInit() {
 		atreus_svc_config.LogConf.MaxAge = SubLogConfig.MustInt("max_age", 20)
 		atreus_svc_config.LogConf.Compress = SubLogConfig.MustBool("compress", true)
 	}
+
 }
 
 func main() {
