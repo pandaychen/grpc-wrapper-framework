@@ -110,8 +110,10 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 	//注意：Metrics2Prometheus必须放在Limiters的前面，否则，捕获不到Limiters返回的错误
 	srv.Use(srv.Recovery(), srv.Timing(), srv.XRequestId(), srv.Metrics2Prometheus())
 
+	//服务端ACL
 	if conf.AclConf.On {
 		srv.CallerIp = append(srv.CallerIp, conf.AclConf.WhiteIpList...)
+		srv.Use(srv.SrcIpFilter())
 	}
 
 	if conf.LimiterConf.On {
@@ -160,6 +162,8 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 			panic(err)
 		}
 	}
+
+	srv.Use(srv.ServerDealTimeout(srv.Conf.SrvConf.Timeout))
 
 	return srv
 }
