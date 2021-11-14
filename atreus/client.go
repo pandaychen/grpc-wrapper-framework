@@ -102,9 +102,6 @@ func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 	//init client interceptors
 	cli.Use(cli.Recovery(), cli.Timing())
 
-	//set dial options
-	cli.DialOpts = append(cli.DialOpts, grpc.WithInsecure(), grpc.WithUnaryInterceptor(cli.BuildUnaryInterceptorChain2()))
-
 	if config.BreakerConf.On {
 		//init breaker config
 		cli.CbBreakerConfig.Name = ""
@@ -120,6 +117,9 @@ func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 	//add timeout
 	cli.Use(cli.ClientCallTimeout(cli.Conf.CliConf.Timeout))
 
+	//set dial options
+	//fix BUGS（必须放在所有interceptor初始化之前）
+	cli.DialOpts = append(cli.DialOpts, grpc.WithInsecure(), grpc.WithUnaryInterceptor(cli.BuildUnaryInterceptorChain2()))
 	switch config.CliConf.DialScheme {
 	case string(enums.RET_TYPE_DIRECT):
 		dial_address := fmt.Sprintf("%s:%d", config.CliConf.DialAddress, config.CliConf.DialPort)
@@ -193,7 +193,7 @@ func (c *Client) BuildUnaryInterceptorChain2() grpc.UnaryClientInterceptor {
 			return c.InnerHandlers[i](ictx, imethod, ireq, ireply, ic, chainHandler, iopts...)
 		}
 
-		//返回第0号位置上的烂机器
+		//返回第0号位置上的拦截器
 		return c.InnerHandlers[0](ctx, method, req, reply, cc, chainHandler, opts...)
 	}
 }
