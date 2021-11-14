@@ -117,6 +117,8 @@ func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 	}
 
 	cli.Use(cli.ClientValidator())
+	//add timeout
+	cli.Use(cli.ClientCallTimeout(cli.Conf.CliConf.Timeout))
 
 	switch config.CliConf.DialScheme {
 	case string(enums.RET_TYPE_DIRECT):

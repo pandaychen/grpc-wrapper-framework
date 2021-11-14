@@ -6,11 +6,12 @@ import (
 )
 
 type CliConfig struct {
-	DialAddress string `json:"dial_address"`
-	DialPort    int    `json:"dial_port"`
-	DialScheme  string `json:"dial_scheme"`
-	Env         string `json:"env"`
-	LbType      string `json:lbtype`
+	DialAddress string        `json:"dial_address"`
+	DialPort    int           `json:"dial_port"`
+	DialScheme  string        `json:"dial_scheme"`
+	Env         string        `json:"env"`
+	LbType      string        `json:lbtype`
+	Timeout     time.Duration `json:"timeout"`
 }
 
 type AtreusCliConfig struct {
@@ -61,6 +62,7 @@ func AtreusCliConfigInit() {
 	atreus_cli_config.CliConf.DialScheme = SubconfigClient.GetString("dial_scheme")
 	atreus_cli_config.CliConf.Env = SubconfigClient.GetString("env")
 	atreus_cli_config.CliConf.LbType = SubconfigClient.GetString("lbtype")
+	atreus_cli_config.CliConf.Timeout = SubconfigClient.MustDuration("timeout", 10*time.Second)
 
 	atreus_cli_config.SrvDnsConf = new(SrvDnsConfig)
 	SubDnsconfig := Config.Use("dnsservice")
