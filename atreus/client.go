@@ -1,8 +1,11 @@
 package atreus
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"sync"
 
 	"grpc-wrapper-framework/common/enums"
@@ -16,6 +19,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 // 客户端封装结构
@@ -119,7 +123,45 @@ func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 
 	//set dial options
 	//fix BUGS（必须放在所有interceptor初始化之前）
-	cli.DialOpts = append(cli.DialOpts, grpc.WithInsecure(), grpc.WithUnaryInterceptor(cli.BuildUnaryInterceptorChain2()))
+	if config.TlsConf.TLSon {
+		var creds credentials.TransportCredentials
+		if config.TlsConf.TLSCaCert != "" {
+			cert, err := tls.LoadX509KeyPair(config.TlsConf.TLSCert, config.TlsConf.TLSKey) //客户端的私钥+证书
+			if err != nil {
+				logger.Error("[NewClient]LoadX509KeyPair error", zap.String("errmsg", err.Error()))
+				return nil, err
+			}
+
+			certPool := x509.NewCertPool()
+			ca, err := ioutil.ReadFile(config.TlsConf.TLSCaCert)
+			if err != nil {
+				logger.Error("[NewClient]NewCertPool ReadFile error", zap.String("errmsg", err.Error()))
+				return nil, err
+			}
+
+			if ok := certPool.AppendCertsFromPEM(ca); !ok {
+				logger.Error("[NewClient]AppendCertsFromPEM error")
+				return nil, errors.New("AppendCertsFromPEM err")
+			}
+
+			creds = credentials.NewTLS(&tls.Config{
+				Certificates: []tls.Certificate{cert},
+				ServerName:   config.TlsConf.TlsCommonName, //Server common name
+				RootCAs:      certPool,
+			})
+
+		} else {
+			creds, err = credentials.NewClientTLSFromFile(config.TlsConf.TLSCert, config.TlsConf.TlsCommonName)
+			if err != nil {
+				logger.Error("[NewClient]NewClientTLSFromFile error", zap.String("errmsg", err.Error()))
+				return nil, err
+			}
+		}
+
+		cli.DialOpts = append(cli.DialOpts, grpc.WithTransportCredentials(creds), grpc.WithUnaryInterceptor(cli.BuildUnaryInterceptorChain2()))
+	} else {
+		cli.DialOpts = append(cli.DialOpts, grpc.WithInsecure(), grpc.WithUnaryInterceptor(cli.BuildUnaryInterceptorChain2()))
+	}
 	switch config.CliConf.DialScheme {
 	case string(enums.RET_TYPE_DIRECT):
 		dial_address := fmt.Sprintf("%s:%d", config.CliConf.DialAddress, config.CliConf.DialPort)

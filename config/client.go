@@ -78,7 +78,9 @@ func AtreusCliConfigInit() {
 	if SubTlsconfig == nil {
 		//not set
 	} else {
-		atreus_cli_config.TlsConf.TLSon = SubTlsconfig.MustBool("tls_on", false)
+		atreus_cli_config.TlsConf.TLSon = SubTlsconfig.MustBool("on-off", false)
+		atreus_cli_config.TlsConf.TlsCommonName = SubTlsconfig.GetString("cert_name")
+		atreus_cli_config.TlsConf.TLSKey = SubTlsconfig.GetString("tls_key")
 		atreus_cli_config.TlsConf.TLSCert = SubTlsconfig.GetString("tls_cert")
 		atreus_cli_config.TlsConf.TLSCaCert = SubTlsconfig.GetString("tls_ca_cert")
 	}
@@ -115,7 +117,7 @@ func AtreusCliConfigInit() {
 	if SubAuthconfig == nil {
 		//not set
 	} else {
-		atreus_cli_config.AuthConf.On = SubAuthconfig.MustBool("on", false)
+		atreus_cli_config.AuthConf.On = SubAuthconfig.MustBool("on-off", false)
 	}
 
 	atreus_cli_config.BreakerConf = new(BreakerConfig)
@@ -123,6 +125,6 @@ func AtreusCliConfigInit() {
 	if SubBreakerconfig == nil {
 		//not set
 	} else {
-		atreus_cli_config.BreakerConf.On = SubBreakerconfig.MustBool("on", false)
+		atreus_cli_config.BreakerConf.On = SubBreakerconfig.MustBool("on-off", false)
 	}
 }
