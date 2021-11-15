@@ -34,6 +34,7 @@ func do_validate(req interface{}) error {
 			return m.validate(false)
 		}*/
 		if err := v.Validate(false); err != nil {
+			//rpc error: code = InvalidArgument desc = invalid HelloRequest.Name: value length must be at least 20 runes
 			return status.Error(codes.InvalidArgument, err.Error())
 		}
 	}

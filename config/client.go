@@ -126,5 +126,11 @@ func AtreusCliConfigInit() {
 		//not set
 	} else {
 		atreus_cli_config.BreakerConf.On = SubBreakerconfig.MustBool("on-off", false)
+		atreus_cli_config.BreakerConf.BreakerType = SubBreakerconfig.MustString("reg_type", "gobreaker")
+		atreus_cli_config.BreakerConf.MaxRequestsForHalfOpen = SubBreakerconfig.MustInt("max_request", 100)
+		atreus_cli_config.BreakerConf.Interval = SubBreakerconfig.MustDuration("interval", 10*time.Second)
+		atreus_cli_config.BreakerConf.TimeoutForOpen = SubBreakerconfig.MustDuration("timeout", 20*time.Second) // 进入Open状态后，多长时间会自动切成 Half-open
+		atreus_cli_config.BreakerConf.ReadyToTripForTotalrequets = SubBreakerconfig.MustInt("r2t_total_request", 10)
+		atreus_cli_config.BreakerConf.ReadyToTripForFailratio = SubBreakerconfig.MustFloat64("r2t_fail_ratio", 0.8)
 	}
 }

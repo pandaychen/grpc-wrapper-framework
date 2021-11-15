@@ -109,11 +109,15 @@ func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 	if config.BreakerConf.On {
 		//init breaker config
 		cli.CbBreakerConfig.Name = ""
+		cli.CbBreakerConfig.MaxRequests = uint32(config.BreakerConf.MaxRequestsForHalfOpen)
+		cli.CbBreakerConfig.Timeout = config.BreakerConf.TimeoutForOpen
+		cli.CbBreakerConfig.Interval = config.BreakerConf.Interval
 		cli.CbBreakerConfig.ReadyToTrip = func(counts gobreaker.Counts) bool {
 			failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
-			return counts.Requests >= 3 && failureRatio >= 0.6
+			return counts.Requests >= uint32(config.BreakerConf.ReadyToTripForTotalrequets) && failureRatio >= config.BreakerConf.ReadyToTripForFailratio
 		}
 		//add breaker
+		//注意，breaker必须正确处理服务端的错误，非必要错误不进入熔断汇总逻辑
 		cli.Use(cli.CircuitBreaker())
 	}
 
