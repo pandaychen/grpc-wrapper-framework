@@ -4,7 +4,10 @@ package atreus
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
@@ -16,6 +19,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
@@ -85,6 +89,46 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		InnerStreamHandlers: make([]grpc.StreamServerInterceptor, 0),
 		Conf:                conf,
 		Ctx:                 context.Background(),
+	}
+
+	if conf.TlsConf.TLSon {
+		//开启TLS
+		var creds credentials.TransportCredentials
+		if conf.TlsConf.TLSCaCert != "" {
+			cert, err := tls.LoadX509KeyPair(conf.TlsConf.TLSCert, conf.TlsConf.TLSKey)
+			if err != nil {
+				srv.Logger.Error("NewServer LoadX509KeyPair error", zap.Any("errmsg", err))
+				return nil
+			}
+
+			certPool := x509.NewCertPool()
+			ca, err := ioutil.ReadFile(conf.TlsConf.TLSCaCert)
+			if err != nil {
+				srv.Logger.Error("NewServer NewCertPool ReadFile error", zap.Any("errmsg", err))
+				return nil
+			}
+
+			if ok := certPool.AppendCertsFromPEM(ca); !ok {
+				if err != nil {
+					srv.Logger.Error("NewServer AppendCertsFromPEM error", zap.Any("errmsg", err))
+					return nil
+				}
+			}
+
+			creds = credentials.NewTLS(&tls.Config{
+				Certificates: []tls.Certificate{cert},
+				ClientAuth:   tls.RequireAndVerifyClientCert,
+				ClientCAs:    certPool,
+			})
+		} else {
+			creds, err = credentials.NewServerTLSFromFile(conf.TlsConf.TLSCert, conf.TlsConf.TLSKey)
+			if err != nil {
+				srv.Logger.Error("NewServer NewServerTLSFromFile error", zap.Any("errmsg", err))
+				return nil
+			}
+		}
+
+		opt = append(opt, grpc.Creds(creds))
 	}
 
 	if conf.SrvConf.Keepalive {

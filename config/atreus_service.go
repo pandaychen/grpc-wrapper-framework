@@ -19,30 +19,30 @@ type SrvConfig struct {
 
 type AtreusSvcConfig struct {
 	//Server config
-	SrvConf *SrvConfig
+	SrvConf *SrvConfig `json:"srv_conf"`
 
 	//TLS config
-	TlsConf *TlsConfig
+	TlsConf *TlsConfig `json:"tls_conf"`
 
 	//Service Register
-	RegistryConf *RegistryConfig
+	RegistryConf *RegistryConfig `json:"registry_conf"`
 
 	//Limiter
-	LimiterConf *LimiterConfig
+	LimiterConf *LimiterConfig `json:"limiter_conf"`
 	//Etcd
-	EtcdConf *EtcdConfig
+	EtcdConf *EtcdConfig `json:"etcd_conf"`
 
 	//Weight
-	WeightConf *WeightConfig
+	WeightConf *WeightConfig `json:"weight_conf"`
 
 	//Log
-	LogConf *LogConfig
+	LogConf *LogConfig `json:"log_conf"`
 
 	//Auth
-	AuthConf *AuthConfig
+	AuthConf *AuthConfig `json:"auth_conf"`
 
 	//ACL
-	AclConf *AclConfig
+	AclConf *AclConfig `json:"acl_conf"`
 }
 
 //global
