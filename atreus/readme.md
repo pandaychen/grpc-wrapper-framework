@@ -2,18 +2,29 @@
 
 atreus 是一个基于 gRPC 封装的脚手架
 
-##  0x01    错误处理（规范）
+## 0x01 错误处理（规范）
 
-####    服务端错误返回
+#### 服务端错误返回
+
 服务端错误返回需要使用如下代码完成，其中第一个参数来源于[官方](https://grpc.github.io/grpc/core/md_doc_statuscodes.html)，第二个参数为自定义，实现[代码](https://github.com/grpc/grpc-go/blob/v1.42.0/status/status.go#L57)：
+
 ```golang
 return status.Error(codes.Internal, pyerrors.InternalError)
 ```
 
+#### 客户端错误返回
 
+需要纳入熔断错误计算的类型（超时类、服务器错误等）：
 
+- `codes.Unknown`：异常错误（recover 拦截器）
+- `codes.DeadlineExceeded`：服务端 ctx 超时（timeout 拦截器）
+- `codes.ResourceExhausted`：服务端限速丢弃（limiter 拦截器）
 
-####    客户端错误返回
+不纳入的（逻辑错误等）：
+
+- `codes.InvalidArgument`：非法参数（ACL 拦截器）
+- `codes.Unauthenticated`：未认证（auth 拦截器）
+- `codes.InvalidArgument`：非法参数（validator 拦截器）
 
 ## 0x02 参数校验：go.validator 接入 proto 的步骤
 

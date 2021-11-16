@@ -8,6 +8,8 @@ import (
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -17,14 +19,13 @@ const (
 // Recovery interceptor：必须放在第 0 号链位置
 func Recovery(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 	//user defer to recovery
-	fmt.Println("Call Recovery interceptor...")
 	defer func() {
 		// 定义堆栈恢复逻辑（打印 coredump 时的堆栈信息）
 		if r := recover(); r != nil {
 			stack := make([]byte, MAX_STACK_SIZE)
 			stack = stack[:runtime.Stack(stack, false)]
 			fmt.Printf("Panic Rpc Call: %s, err=%v, stack:\n%s", info.FullMethod, r, string(stack))
-			err = errors.New("Server internal error")
+			err = status.Errorf(codes.Unknown, "Server panic error: %s", info.FullMethod)
 		}
 	}()
 
@@ -48,7 +49,7 @@ func (s *Server) Recovery() grpc.UnaryServerInterceptor {
 				buf = buf[:rs]
 				pl := fmt.Sprintf("Panic Rpc Call: : %v\n%v\n%s\n", req, rerr, buf)
 				fmt.Fprintf(os.Stderr, pl)
-				err = errors.New("Server internal error")
+				err = status.Errorf(codes.Unknown, "Server panic error: %s", args.FullMethod)
 			}
 		}()
 		// 注意：服务端的拦截器 handler，这里是进入下一个拦截器

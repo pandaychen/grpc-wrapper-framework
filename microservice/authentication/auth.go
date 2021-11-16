@@ -76,9 +76,9 @@ func (a *Authenticator) Authenticate(ctx context.Context) error {
 		return a.Validate(appid, apptoken, method)
 	case enums.AUTH_TYPE_JWT:
 		//TODO: fix jwt auth
-		return status.Error(codes.Internal, pyerrors.InternalError)
+		return status.Error(codes.Unauthenticated, pyerrors.AuthenticatorMissing)
 	default:
-		return status.Error(codes.Internal, pyerrors.InternalError)
+		return status.Error(codes.Unauthenticated, pyerrors.AuthenticatorMissing)
 	}
 }
 
@@ -90,7 +90,7 @@ func (a *Authenticator) Validate(appid, token string, method enums.AuthType) err
 		}
 	case enums.AUTH_TYPE_JWT:
 		//TODO: fix jwt auth
-		return status.Error(codes.Internal, pyerrors.InternalError)
+		return status.Error(codes.Unauthenticated, pyerrors.AuthenticatorMissing)
 	}
 
 	return nil

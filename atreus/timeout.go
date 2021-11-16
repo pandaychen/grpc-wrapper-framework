@@ -81,6 +81,7 @@ func (s *Server) ServerDealTimeout(timeout time.Duration) grpc.UnaryServerInterc
 			if err == context.Canceled {
 				err = status.Error(codes.Canceled, err.Error())
 			} else if err == context.DeadlineExceeded {
+				//纳入熔断错误处理
 				err = status.Error(codes.DeadlineExceeded, err.Error())
 			}
 			return nil, err
