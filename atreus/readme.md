@@ -2,7 +2,20 @@
 
 atreus 是一个基于 gRPC 封装的脚手架
 
-## go.validator 接入 proto 验证方法
+##  0x01    错误处理（规范）
+
+####    服务端错误返回
+服务端错误返回需要使用如下代码完成，其中第一个参数来源于[官方](https://grpc.github.io/grpc/core/md_doc_statuscodes.html)，第二个参数为自定义，实现[代码](https://github.com/grpc/grpc-go/blob/v1.42.0/status/status.go#L57)：
+```golang
+return status.Error(codes.Internal, pyerrors.InternalError)
+```
+
+
+
+
+####    客户端错误返回
+
+## 0x02 参数校验：go.validator 接入 proto 的步骤
 
 #### 使用 github.com/mwitkow/go-proto-validators/protoc-gen-govalidators 包
 

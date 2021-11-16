@@ -9,6 +9,8 @@ import (
 	"github.com/sony/gobreaker"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (c *Client) CircuitBreaker() grpc.UnaryClientInterceptor {
@@ -29,5 +31,16 @@ func (c *Client) CircuitBreaker() grpc.UnaryClientInterceptor {
 			return err
 		}
 		return
+	}
+}
+
+//check  whether or not error is acceptable
+//https://grpc.github.io/grpc/core/md_doc_statuscodes.html
+func IsBreakerNeedError(err error) bool {
+	switch status.Code(err) {
+	case codes.DeadlineExceeded:
+		return true
+	default:
+		return false
 	}
 }
