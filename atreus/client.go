@@ -116,8 +116,9 @@ func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 			failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
 			return counts.Requests >= uint32(config.BreakerConf.ReadyToTripForTotalrequets) && failureRatio >= config.BreakerConf.ReadyToTripForFailratio
 		}
-		//add breaker
+		//add breaker error checking
 		//注意，breaker必须正确处理服务端的错误，非必要错误不进入熔断汇总逻辑
+		cli.CbBreakerConfig.IsSuccessful = cli.IsBreakerNeedError
 		cli.Use(cli.CircuitBreaker())
 	}
 
