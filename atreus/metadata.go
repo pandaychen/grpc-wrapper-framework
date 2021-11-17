@@ -22,21 +22,21 @@ type WMetadata struct {
 }
 
 //从服务端ctx获取metadata
-func (m *WMetadata) FromIncoming(ctx context.Context) {
+func (m *WMetadata) FromIncoming(ctx context.Context) bool {
 	if m == nil {
 		m = &WMetadata{metadata.MD{}}
 	}
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return
+		return false
 	}
 	//m.MD["aaa"] = nil
 	m.MD = md
-	return
+	return true
 }
 
 //从客户端ctx获取metadata
-func (m *WMetadata) FromOutgoing(ctx context.Context) {
+func (m *WMetadata) FromOutgoing(ctx context.Context) bool {
 	if m == nil {
 		m = &WMetadata{metadata.MD{}}
 		/*
@@ -47,9 +47,10 @@ func (m *WMetadata) FromOutgoing(ctx context.Context) {
 	}
 	md, ok := metadata.FromOutgoingContext(ctx)
 	if !ok {
-		return
+		return false
 	}
 	m.MD = md
+	return true
 }
 
 //客户端注入数据
@@ -60,6 +61,15 @@ func (m *WMetadata) ToOutgoing(ctx context.Context) context.Context {
 //服务端注入数据
 func (m *WMetadata) ToIncoming(ctx context.Context) context.Context {
 	return metadata.NewIncomingContext(ctx, metadata.MD(m.MD))
+}
+
+func (m *WMetadata) GetArr(key string) []string {
+	lk := strings.ToLower(key)
+	vv, ok := m.MD[lk]
+	if !ok {
+		return nil
+	}
+	return vv
 }
 
 func (m *WMetadata) Get(key string) string {
@@ -86,4 +96,26 @@ func (m *WMetadata) Add(key string, value string) {
 	lk := strings.ToLower(key)
 	m.MD[lk] = append(m.MD[lk], value)
 	return
+}
+
+//metadata API for client
+func CloneClientOutgoingData(ctx context.Context) metadata.MD {
+	md, ok := metadata.FromOutgoingContext(ctx)
+	if !ok {
+		return metadata.MD{}
+	}
+
+	//return a copy
+	return md.Copy()
+}
+
+//metadata API for server
+func CloneServerIncomingData(ctx context.Context) metadata.MD {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return metadata.MD{}
+	}
+
+	//return a copy
+	return md.Copy()
 }

@@ -15,6 +15,7 @@ type SrvConfig struct {
 	ForceCloseWait    time.Duration `json:"close_wait"`
 	KeepAliveInterval time.Duration `json:"keepalive_interval"`
 	KeepAliveTimeout  time.Duration `json:"keepalive_timeout"`
+	MaxRetry          int           `json:"max_retry"`
 }
 
 type AtreusSvcConfig struct {
@@ -73,6 +74,7 @@ func AtreusSvcConfigInit() {
 	atreus_svc_config.SrvConf.ForceCloseWait = SubconfigServer.MustDuration("close_wait", time.Second*10)
 	atreus_svc_config.SrvConf.KeepAliveInterval = SubconfigServer.MustDuration("keepalive_interval", time.Second*10)
 	atreus_svc_config.SrvConf.KeepAliveTimeout = SubconfigServer.MustDuration("keepalive_timeout", time.Second*10)
+	atreus_svc_config.SrvConf.MaxRetry = SubconfigServer.GetString("max_retry")
 
 	atreus_svc_config.TlsConf = new(TlsConfig)
 	SubTlsconfig := Config.Use("security")

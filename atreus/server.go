@@ -58,6 +58,8 @@ type Server struct {
 	IsDebug bool
 	//acl
 	CallerIp []string
+	//max retry limit
+	MaxRetry int
 
 	//wrapper Server
 	RpcServer *grpc.Server //原生Server
@@ -207,6 +209,11 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		}
 	}
 
+	//set server max retry limit
+	if conf.SrvConf.MaxRetry > 0 {
+		srv.MaxRetry = conf.SrvConf.MaxRetry
+		srv.Use(srv.RetryChecking())
+	}
 	srv.Use(srv.ServerDealTimeout(srv.Conf.SrvConf.Timeout))
 
 	return srv
