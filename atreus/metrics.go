@@ -16,7 +16,7 @@ var (
 		Subsystem: metrics.DefaultSubsystem,
 		Name:      "duration_ms",
 		Help:      "atreus rpc server requests duration(ms)",
-		Labels:    []string{"method"}, //labels 暂时只设置method，增肌按错误区分？
+		Labels:    []string{"method"}, //labels 暂时只设置method，增加按错误区分？
 		Buckets:   []float64{5, 10, 25, 50, 100, 250, 500, 1000},
 	}.Build()
 )
