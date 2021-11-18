@@ -24,6 +24,9 @@ type Limiter interface {
 func (s *Server) Limit(limiter Limiter) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if limiter.Allow(info.FullMethod) {
+			if s.Proba.TrueOrNot() {
+				s.Logger.Error("Limit exceed", zap.String("method", info.FullMethod))
+			}
 			//在触发RPC调用前就return了，所以其他需要捕获错误的中间件需要设置在limiter之前
 			//return nil, status.Errorf(codes.ResourceExhausted, "%s is rejected by ratelimit middleware", info.FullMethod)
 			//for short metrics：atreusns_atreusss_server_counter_total{code="ErrRatelimit",method="/proto.GreeterService/SayHello",type="unary"} 2
@@ -38,7 +41,7 @@ func (s *Server) Limit(limiter Limiter) grpc.UnaryServerInterceptor {
 func (s *Server) LimitStream(limiter Limiter) grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if limiter.Allow(info.FullMethod) {
-			if s.IsDebug {
+			if s.Proba.TrueOrNot() {
 				s.Logger.Error("Limit exceed", zap.String("method", info.FullMethod))
 			}
 			return status.Errorf(codes.ResourceExhausted, "%s is rejected by ratelimit middleware.", info.FullMethod)

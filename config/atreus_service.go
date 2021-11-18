@@ -151,6 +151,7 @@ func AtreusSvcConfigInit() {
 		atreus_svc_config.LogConf.MaxBackups = SubLogConfig.MustInt("max_backups", 10)
 		atreus_svc_config.LogConf.MaxAge = SubLogConfig.MustInt("max_age", 20)
 		atreus_svc_config.LogConf.Compress = SubLogConfig.MustBool("compress", true)
+		atreus_svc_config.LogConf.Sampling = SubLogConfig.GetFloat64("sampling")
 	}
 
 }

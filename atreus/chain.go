@@ -20,7 +20,7 @@ func (s *Server) BuildUnaryInterceptorChain(interceptors ...grpc.UnaryServerInte
 		chain := handler // 原始的RPC方法
 		for i := len(interceptors) - 1; i >= 0; i-- {
 			//从数组最后一个interceptor开始，依次和前一个建立chain关系
-			if s.IsDebug {
+			if s.Proba.TrueOrNotWithProbable(1) {
 				s.Logger.Info("[BuildUnaryInterceptorChain]createSubchain", zap.String("method", info.FullMethod), zap.Any("req", req), zap.Int("intercepor index", i))
 			}
 			chain = createSubchain(interceptors[i], chain, info)
@@ -77,7 +77,7 @@ func (s *Server) BuildUnaryInterceptorChain2(ctx context.Context, req interface{
 			return handler(ic, ir)
 		}
 		i++
-		if s.IsDebug {
+		if s.Proba.TrueOrNotWithProbable(1) {
 			s.Logger.Info("[BuildUnaryInterceptorChain2]createSubchain", zap.String("method", args.FullMethod), zap.Any("req", ir), zap.Int("intercepor index", i))
 		}
 		return s.InnerHandlers[i](ic, ir, args, chain)

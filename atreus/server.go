@@ -31,6 +31,7 @@ import (
 	auth "grpc-wrapper-framework/microservice/authentication"
 	dis "grpc-wrapper-framework/microservice/discovery"
 	discom "grpc-wrapper-framework/microservice/discovery/common"
+	"grpc-wrapper-framework/pkg/xmath"
 	"grpc-wrapper-framework/pkg/xrand"
 )
 
@@ -54,12 +55,14 @@ type Server struct {
 	//limiter
 	Limiters *XRateLimiter
 	//context
-	Ctx     context.Context
-	IsDebug bool
+	Ctx context.Context
 	//acl
 	CallerIp []string
 	//max retry limit
 	MaxRetry int
+	//Log sampling
+	Sampling float64
+	Proba    *xmath.XProbability
 
 	//wrapper Server
 	RpcServer *grpc.Server //原生Server
@@ -91,6 +94,13 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		InnerStreamHandlers: make([]grpc.StreamServerInterceptor, 0),
 		Conf:                conf,
 		Ctx:                 context.Background(),
+		Sampling:            conf.LogConf.Sampling,
+	}
+
+	if srv.Sampling > 0 {
+		srv.Proba = xmath.NewProbability(srv.Sampling)
+	} else {
+		srv.Proba = xmath.NewProbability(0.0)
 	}
 
 	if conf.TlsConf.TLSon {
