@@ -4,4 +4,6 @@ package context
 
 const (
 	CtxAttemptKey = "x-retry-key"
+
+	CtxCliRetryKey = "x-cli-retry-counter"
 )
