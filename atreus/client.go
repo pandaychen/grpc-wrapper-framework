@@ -36,6 +36,9 @@ type Client struct {
 	CbBreakerMap    map[string]*gobreaker.CircuitBreaker
 	CbBreakerConfig gobreaker.Settings //这里暂时全局配置
 
+	//retry
+	MaxRetry int
+
 	RpcPersistClient *grpc.ClientConn
 }
 

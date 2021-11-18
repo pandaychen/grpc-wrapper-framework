@@ -53,6 +53,13 @@ func (m *WMetadata) FromOutgoing(ctx context.Context) bool {
 	return true
 }
 
+//get a copy from m
+func (m WMetadata) Copy() *WMetadata {
+	new_wmd := &WMetadata{metadata.MD{}}
+	new_wmd.MD = m.MD.Copy()
+	return new_wmd
+}
+
 //客户端注入数据
 func (m *WMetadata) ToOutgoing(ctx context.Context) context.Context {
 	return metadata.NewOutgoingContext(ctx, metadata.MD(m.MD))
