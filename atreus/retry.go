@@ -25,7 +25,7 @@ func (s *Server) RetryChecking() grpc.UnaryServerInterceptor {
 		)
 		ok := wmd.FromIncoming(ctx) //get ctx
 		if ok {
-			wmd_copy = wmd.Copy() //we use a copy of md
+			wmd_copy = wmd.Copy() //Fix：we use a copy of wmd
 			attemptArr := wmd_copy.Get(actx.CtxAttemptKey)
 			if attemptArr != "" {
 				if attempt_int, err := strconv.Atoi(attemptArr); err == nil {
@@ -101,7 +101,8 @@ func (c *Client) DoClientRetry(optFuncs ...retrys.CallOption) grpc.UnaryClientIn
 				}
 			}
 			if retrys.CheckIsRetriable(lastErr, callOpts) == false {
-				//非重传错误，直接返回
+				//非重传类错误，直接返回
+				//在server超时拦截器中返回的codes.DeadlineExceeded错误（服务端处理超时），不在此错误集合中，会跳过重传逻辑
 				return lastErr
 			}
 			continue

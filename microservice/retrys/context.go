@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	actx "grpc-wrapper-framework/common/context"
-	amd "grpc-wrapper-framework/microservice/metadata"
-
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	actx "grpc-wrapper-framework/common/context"
+	amd "grpc-wrapper-framework/microservice/metadata"
 )
 
 func contextErr2GrpcErr(err error) error {
@@ -51,15 +51,19 @@ func PerCallContext(ctx context.Context, attempt int, callOpts *retryOptions) co
 		ctx, _ = context.WithTimeout(ctx, callOpts.perCallTimeout)
 	}
 
+	//在header中添加CtxAttemptKey标识
 	if attempt > 0 && callOpts.includeRetryHeader {
 		//需要在header中设置attemp标志
 		var (
 			newmd metadata.MD
 		)
-		mdClone := amd.ExtractOutgoing(ctx).Clone().Set(actx.CtxAttemptKey, fmt.Sprintf("%d", attempt))
-		ctx = mdClone.ToOutgoing(ctx)
-		fmt.Println(newmd)
-		fmt.Println(ctx)
+		//mdClone := amd.ExtractOutgoing(ctx).Clone().Set(actx.CtxAttemptKey, fmt.Sprintf("%d", attempt))
+		//ctx = mdClone.ToOutgoing(ctx)
+
+		//get fully copy of origin client context
+		newmd = amd.CloneClientOutgoingData(ctx)
+		newmd.Set(actx.CtxAttemptKey, fmt.Sprintf("%d", attempt))
+		ctx = metadata.NewOutgoingContext(ctx, newmd)
 	}
 	return ctx
 }

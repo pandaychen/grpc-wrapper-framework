@@ -77,9 +77,11 @@ func (s *Server) BuildUnaryInterceptorChain2(ctx context.Context, req interface{
 			return handler(ic, ir)
 		}
 		i++
-		if s.Proba.TrueOrNotWithProbable(1) {
-			s.Logger.Info("[BuildUnaryInterceptorChain2]createSubchain", zap.String("method", args.FullMethod), zap.Any("req", ir), zap.Int("intercepor index", i))
-		}
+		/*
+			if s.Proba.TrueOrNotWithProbable(1) {
+				s.Logger.Info("[BuildUnaryInterceptorChain2]createSubchain", zap.String("method", args.FullMethod), zap.Any("req", ir), zap.Int("intercepor index", i))
+			}
+		*/
 		return s.InnerHandlers[i](ic, ir, args, chain)
 	}
 

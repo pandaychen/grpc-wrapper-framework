@@ -7,6 +7,28 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+//metadata API for client
+func CloneClientOutgoingData(ctx context.Context) metadata.MD {
+	md, ok := metadata.FromOutgoingContext(ctx)
+	if !ok {
+		return metadata.MD{}
+	}
+
+	//return a copy
+	return md.Copy()
+}
+
+//metadata API for server
+func CloneServerIncomingData(ctx context.Context) metadata.MD {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return metadata.MD{}
+	}
+
+	//return a copy
+	return md.Copy()
+}
+
 type gRPCMD metadata.MD
 
 func ExtractIncoming(ctx context.Context) gRPCMD {
