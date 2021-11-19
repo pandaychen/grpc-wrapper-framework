@@ -99,6 +99,12 @@ func WithCodes(retryCodes ...codes.Code) CallOption {
 	}}
 }
 
+func WithHeaderSignOff(on bool) CallOption {
+	return CallOption{applyFunc: func(o *retryOptions) {
+		o.includeRetryHeader = on
+	}}
+}
+
 // WithPerRetryTimeout sets the RPC timeout per call (including initial call) on this call, or this interceptor.
 //
 // The context.Deadline of the call takes precedence and sets the maximum time the whole invocation

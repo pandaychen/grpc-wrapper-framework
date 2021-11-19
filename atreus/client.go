@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"sync"
+	"time"
 
 	"grpc-wrapper-framework/common/enums"
 	"grpc-wrapper-framework/common/vars"
@@ -14,6 +15,7 @@ import (
 	"grpc-wrapper-framework/logger"
 	dis "grpc-wrapper-framework/microservice/discovery"
 	com "grpc-wrapper-framework/microservice/discovery/common"
+	"grpc-wrapper-framework/microservice/retrys"
 
 	"github.com/sony/gobreaker"
 	"go.uber.org/zap"
@@ -128,6 +130,20 @@ func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 	cli.Use(cli.ClientValidator())
 	//add timeout
 	cli.Use(cli.ClientCallTimeout(cli.Conf.CliConf.Timeout))
+
+	//add retry
+	if config.RetryConf.On {
+		var retry_options []retrys.CallOption
+		cli.MaxRetry = config.RetryConf.Maxretry
+		retry_options = append(retry_options, retrys.WithMax(config.RetryConf.Maxretry))
+		if config.RetryConf.PerCallTimeout > time.Duration(0) {
+			retry_options = append(retry_options, retrys.WithPerRetryTimeout(config.RetryConf.PerCallTimeout))
+		}
+		if !config.RetryConf.HeaderSign {
+			retry_options = append(retry_options, retrys.WithHeaderSignOff(false))
+		}
+		cli.DoClientRetry(retry_options...)
+	}
 
 	//set dial options
 	//fix BUGS（必须放在所有interceptor初始化之前）

@@ -35,6 +35,9 @@ type AtreusCliConfig struct {
 
 	//Breaker
 	BreakerConf *BreakerConfig
+
+	//retry
+	RetryConf *ClientRetryConfig
 }
 
 //global
@@ -132,5 +135,17 @@ func AtreusCliConfigInit() {
 		atreus_cli_config.BreakerConf.TimeoutForOpen = SubBreakerconfig.MustDuration("timeout", 20*time.Second) // 进入Open状态后，多长时间会自动切成 Half-open
 		atreus_cli_config.BreakerConf.ReadyToTripForTotalrequets = SubBreakerconfig.MustInt("r2t_total_request", 10)
 		atreus_cli_config.BreakerConf.ReadyToTripForFailratio = SubBreakerconfig.MustFloat64("r2t_fail_ratio", 0.8)
+	}
+
+	//retry config
+	atreus_cli_config.RetryConf = new(ClientRetryConfig)
+	SubRetryconfig := Config.Use("retry")
+	if SubRetryconfig == nil {
+		//not set
+	} else {
+		atreus_cli_config.RetryConf.On = SubRetryconfig.MustBool("on-off", false)
+		atreus_cli_config.RetryConf.Maxretry = SubRetryconfig.MustInt("max_retry", 2)
+		atreus_cli_config.RetryConf.PerCallTimeout = SubRetryconfig.MustDuration("per_call_timeout", 3*time.Second)
+		atreus_cli_config.RetryConf.HeaderSign = SubRetryconfig.MustBool("inject_header_sign", true)
 	}
 }
