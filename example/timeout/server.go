@@ -30,7 +30,7 @@ func main() {
 		panic(err)
 	}
 
-	config.InitConfigAbsolutePath("./", "server", "yaml")
+	config.InitConfigAbsolutePath("../conf/", "grpc_server", "yaml")
 	config.AtreusSvcConfigInit()
 
 	grpclog.Infof("Server binding in %s...", BindAddr)

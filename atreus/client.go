@@ -192,7 +192,7 @@ func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 		dial_address := fmt.Sprintf("%s:%d", config.CliConf.DialAddress, config.CliConf.DialPort)
 		conn, err = grpc.Dial(dial_address, cli.DialOpts...)
 	case string(enums.REG_TYPE_DNS):
-		//support K8S environment
+		//support K8S environment（DNS寻址）
 		dial_address := fmt.Sprintf("dns:///%s:%d", config.SrvDnsConf.SrvName, config.SrvDnsConf.SrvPort)
 		conn, err = grpc.Dial(dial_address, cli.DialOpts...)
 	case string(enums.REG_TYPE_ETCD):

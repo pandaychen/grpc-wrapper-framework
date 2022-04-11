@@ -43,7 +43,7 @@ const (
 //grpc-server核心结构（封装）
 type Server struct {
 	Logger   *zap.Logger
-	Conf     *config.AtreusSvcConfig
+	Conf     *config.AtreusSvcConfig //TODO：hot loading
 	ConfLock *sync.RWMutex
 
 	EtcdClient          *etcdv3.Client
@@ -163,7 +163,7 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 
 	//Fill the interceptors
 
-	//注意：Metrics2Prometheus必须放在Limiters的前面，否则，捕获不到Limiters返回的错误
+	//注意：Metrics2Prometheus必须放在Limiters的前面，否则，捕获不到Limiters返回的错误（所有基础的拦截器都放在前面）
 	srv.Use(srv.Recovery(), srv.Timing(), srv.XRequestId(), srv.Metrics2Prometheus())
 
 	//服务端ACL
@@ -172,12 +172,13 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		srv.Use(srv.SrcIpFilter())
 	}
 
+	//服务端限流器
 	if conf.LimiterConf.On {
 		srv.Limiters = NewXRateLimiter(rate.Limit(conf.LimiterConf.LimiterRate), conf.LimiterConf.LimiterSize)
 		srv.Use(srv.Limit(srv.Limiters))
 	}
 
-	//开启auth
+	//认证拦截器，开启auth
 	if conf.AuthConf.On {
 		srv.Auther, err = auth.NewAuthenticator(&srv.Ctx)
 		if err != nil {
@@ -186,8 +187,10 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		srv.Use(srv.Authorize())
 	}
 
+	//用户参数校验
 	srv.Use(srv.SrvValidator())
 
+	//服务注册
 	if conf.RegistryConf.RegOn {
 		nodeinfo := discom.ServiceBasicInfo{
 			AddressInfo: conf.SrvConf.Addr,
@@ -224,6 +227,8 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		srv.MaxRetry = conf.SrvConf.MaxRetry
 		srv.Use(srv.RetryChecking())
 	}
+
+	// 服务端超时拦截器
 	srv.Use(srv.ServerDealTimeout(srv.Conf.SrvConf.Timeout))
 
 	return srv
