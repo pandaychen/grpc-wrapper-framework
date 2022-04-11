@@ -2,6 +2,8 @@ syntax = "proto3";
 
 // protoc -I=. *.proto --go_out=plugins=grpc:.
 
+import "validate/validate.proto";
+
 option java_multiple_files = true;
 option java_package = "io.grpc.examples.helloworld";
 option java_outer_classname = "HelloWorldProto";
@@ -15,7 +17,7 @@ service GreeterService {
 }
 
 message HelloRequest {
-    string name = 1;
+    string name = 1 [(validate.rules).string.min_len =  20]; ;
 }
 
 message HelloReply {
