@@ -9,9 +9,9 @@ atreus:
     name: "test-service"
     port: 8088
   security:
-    tls_on: true
+    on-off: true
     tls_cert: "../pem/server.crt"
-    tls_key: "../pem/server.key"
+    cert_name: "test"
     tls_ca_cert: ""
   discovery:
     reg_type: "etcd"
@@ -22,10 +22,10 @@ atreus:
     reg_service_name: "test"
     reg_service_version: "v1.0"
   auth:
-    on: true
+    on-off: true
     type: "normal"
   breaker:
-    on: false
+    on-off: true
 
 log:
   file_name: "./log/client.log"

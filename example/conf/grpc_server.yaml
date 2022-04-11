@@ -1,6 +1,6 @@
 atreus:
   server:
-    address: "0.0.0.0:12345"
+    address: "127.0.0.1:12345"
     keepalive: false
     timeout: 20s
     idle_timeout: 20s
@@ -8,12 +8,14 @@ atreus:
     close_wait: 20s
     keepalive_interval: 20s
     keepalive_timeout: 20s
+    max_retry: 20
   security:
-    tls_on: true
+    on-off: true
     tls_cert: "../pem/server.crt"
     tls_key: "../pem/server.key"
     tls_ca_cert: ""
   register:
+    on-off: true
     reg_type: "etcd"
     reg_endpoint: "http://127.0.0.1:2379"
     reg_ttl: 10s
@@ -22,25 +24,30 @@ atreus:
     etcd_on: true #from https://github.com/pandaychen/etcd_tools/blob/master/config.go
     etcd_endpoint: "http://127.0.0.1:2379"
     ttl: 10s
+    reg_api_on: false
     reg_service_name: "test"
     reg_service_version: "v1.0"
     reg_service_addr: "127.0.0.1:12345"
   weight:
     init: 100
   limiter:
-    on: true
+    on-off: true
     type: "token" ###令牌桶token/漏桶leaky
     rate: 10
     bucketsize: 100
   auth:
-    on: true
-    type: "normal"
+    on-off: true
+  acl:
+    on-off: true
+    white_list:
+      - "127.0.0.1/32"
+      - "1.1.1.1/24"
 
 log:
   file_name: "./log/server.log"
   max_size: 128
   max_backups: 10
-  max_age: 7
+  max_age: 7 
   compress: false
 
 mysql:

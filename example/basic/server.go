@@ -3,11 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net"
-
 	"grpc-wrapper-framework/atreus"
 	"grpc-wrapper-framework/config"
 	pb "grpc-wrapper-framework/proto"
+	"net"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/grpclog"
