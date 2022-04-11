@@ -40,3 +40,10 @@ grpc 开启的参数：
 
 - keepalives 配置（双向，长连接）
 - backoff
+
+
+##  测试
+客户端测试需要加入参数，否则会报错`transport: authentication handshake failed: x509: certificate relies on legacy Common Name field, use SANs or temporarily enable Common Name matching with GODEBUG=x509ignoreCN=0`
+```bash
+GODEBUG=x509ignoreCN=0 ./client
+```
