@@ -111,6 +111,9 @@ func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 	//init client interceptors
 	cli.Use(cli.Recovery(), cli.Timing())
 
+	//参数校验，在熔断器之前
+	cli.Use(cli.ClientValidator())
+
 	if config.BreakerConf.On {
 		//init breaker config
 		cli.CbBreakerConfig.Name = ""
@@ -127,7 +130,6 @@ func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 		cli.Use(cli.CircuitBreaker())
 	}
 
-	cli.Use(cli.ClientValidator())
 	//add timeout
 	cli.Use(cli.ClientCallTimeout(cli.Conf.CliConf.Timeout))
 
@@ -144,6 +146,10 @@ func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 		}
 		cli.DoClientRetry(retry_options...)
 	}
+
+	//客户端错误统一格式化，RPC之前最后一个拦截器
+	//（由于需要将status.Status错误类型转换为errcode.Codes类型）
+	cli.Use(cli.TransError())
 
 	//set dial options
 	//fix BUGS（必须放在所有interceptor初始化之前）
