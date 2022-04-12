@@ -164,7 +164,7 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 	//Fill the interceptors
 
 	//注意：Metrics2Prometheus必须放在Limiters的前面，否则，捕获不到Limiters返回的错误（所有基础的拦截器都放在前面）
-	srv.Use(srv.Recovery(), srv.Timing(), srv.XRequestId(), srv.Metrics2Prometheus())
+	srv.Use(srv.Recovery(), srv.TransError(), srv.Timing(), srv.XRequestId(), srv.Metrics2Prometheus())
 
 	//服务端ACL
 	if conf.AclConf.On {
