@@ -6,7 +6,7 @@ atreus 是一个基于 gRPC 封装的脚手架
 
 #### 服务端错误返回
 
-服务端错误返回需要使用如下代码完成，其中第一个参数来源于[官方](https://grpc.github.io/grpc/core/md_doc_statuscodes.html)，第二个参数为自定义，实现[代码](https://github.com/grpc/grpc-go/blob/v1.42.0/status/status.go#L57)：
+服务端错误返回需要使用如下代码完成，其中第一个参数来源于 [官方](https://grpc.github.io/grpc/core/md_doc_statuscodes.html)，第二个参数为自定义，实现 [代码](https://github.com/grpc/grpc-go/blob/v1.42.0/status/status.go#L57)：
 
 ```golang
 return status.Error(codes.Internal, pyerrors.InternalError)
@@ -25,6 +25,14 @@ return status.Error(codes.Internal, pyerrors.InternalError)
 - `codes.InvalidArgument`：非法参数（ACL 拦截器）
 - `codes.Unauthenticated`：未认证（auth 拦截器）
 - `codes.InvalidArgument`：非法参数（validator 拦截器）
+
+####    错误的生成方式
+所有的错误按照如下建议生成：
+1.  只使用 `github.com/pkg/errors` 定义的方法来生成（封装）错误
+2.  拦截器中的错误生成，只使用如下方式，不自己构造错误返回：
+    -   调用 `google.golang.org/grpc/status` 包的 `Error` 方法构造，如 `status.Error(codes.InvalidArgument, err.Error())`，第一个参数为 grpc 标准错误类型，第二个参数为业务错误，可选为想给用户返回的错误字符串、或者 atreus 全局错误 `errcode.MethodNotAllowed.Error()`
+    -   直接返回 atreus 定义的全局错误，比如服务端限流拦截器返回限流时，直接返回系统默认的错误 `errcode.ServiceUnavailable`；服务端发生 `panic` 时，直接返回 `ecode.ServerErr`，客户端发生熔断丢包时，直接返回 `ecode.ServiceUnavailable` 即可
+    -   如前所说，错误的生成会熔断的错误计数，特别要注意
 
 ## 0x02 参数校验：go.validator 接入 proto 的步骤
 
