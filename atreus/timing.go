@@ -37,7 +37,6 @@ func (c *Client) Timing() grpc.UnaryClientInterceptor {
 		elapseTime := time.Since(startTime)
 		if err != nil {
 			c.Logger.Error("[Client]Timing RPC Call fail", zap.Any("elapse time", elapseTime), zap.String("servername", serverName), zap.Any("req", req), zap.String("errmsg", err.Error()))
-			return err
 		}
 
 		if elapseTime > slowThreshold {

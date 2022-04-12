@@ -5,14 +5,13 @@ import (
 	"net"
 	"strings"
 
+	"grpc-wrapper-framework/errcode"
 	nw "grpc-wrapper-framework/pkg/network"
 
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/peer"
-	"google.golang.org/grpc/status"
 )
 
 //获取调用端IP
@@ -35,13 +34,14 @@ func (s *Server) SrcIpFilter() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		srcip, err := GetClientIP(ctx)
 		if err != nil {
-			s.Logger.Error("SrcIpFilter GetClientIP error", zap.Any("errmsg", err))
-			return nil, status.Error(codes.InvalidArgument, "srcip unknown")
+			s.Logger.Error("[Server]SrcIpFilter GetClientIP error", zap.Any("errmsg", err))
+			return nil, errcode.AccessDenied
 		}
 
 		if bret := nw.CheckIpCidr(srcip, s.CallerIp); bret == false {
-			s.Logger.Error("[SrcIpFilter]src ip forbidden", zap.String("srcip", srcip))
-			return nil, status.Error(codes.InvalidArgument, "srcip restrict")
+			s.Logger.Error("[Server]SrcIpFilter src ip forbidden", zap.String("srcip", srcip))
+			//return nil, status.Error(codes.InvalidArgument, "srcip restrict")
+			return nil, errcode.AccessDenied
 		}
 
 		//go to next interceptor

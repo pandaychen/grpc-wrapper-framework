@@ -3,6 +3,7 @@ package atreus
 import (
 	"errors"
 	"fmt"
+	"grpc-wrapper-framework/errcode"
 	"os"
 	"runtime"
 
@@ -49,7 +50,10 @@ func (s *Server) Recovery() grpc.UnaryServerInterceptor {
 				buf = buf[:rs]
 				pl := fmt.Sprintf("Panic Rpc Call: : %v\n%v\n%s\n", req, rerr, buf)
 				fmt.Fprintf(os.Stderr, pl)
-				err = status.Errorf(codes.Unknown, "Server panic error: %s", args.FullMethod)
+				//err = status.Errorf(codes.Unknown, "Server panic error: %s", args.FullMethod)
+
+				//返回grpc的内置错误码+项目的错误码封装
+				err = status.Errorf(codes.Unknown, errcode.ServerErr.Error())
 			}
 		}()
 		// 注意：服务端的拦截器 handler，这里是进入下一个拦截器

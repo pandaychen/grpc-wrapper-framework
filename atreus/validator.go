@@ -53,11 +53,12 @@ func (s *Server) SrvValidator() grpc.UnaryServerInterceptor {
 	}
 }
 
+//客户端参数校验
 func (c *Client) ClientValidator() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		if err := do_validate(req); err != nil {
 			c.Logger.Error("[ClientValidator]check params error", zap.Any("param", req))
-			return err
+			return status.Error(codes.InvalidArgument, err.Error())
 		}
 
 		//go to next interceptor
