@@ -28,9 +28,12 @@ func FromCode(code Code) *Status {
 
 // FromProto new status from grpc detail
 func FromProto(pbMsg proto.Message) Codes {
+	//尝试解析pbMsg，pbMsg的生成方式如下面所示
+	//	err, _ := errcode.Error(errcode.AccessDenied, "AccessDenied").WithDetails(&pb.HelloReply{Success: true, Message: "this is test detail"})
 	if msg, ok := pbMsg.(*types.Status); ok {
 		if msg.Message == "" || msg.Message == strconv.FormatInt(int64(msg.Code), 10) {
 			// NOTE: if message is empty convert to pure Code, will get message from config center.
+			// 当msg.Message的字符串为空，或者是纯数字（错误码）的时候，重新构造Codes类型返回
 			return Code(msg.Code)
 		}
 		return &Status{s: msg}

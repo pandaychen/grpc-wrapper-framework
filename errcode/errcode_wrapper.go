@@ -12,7 +12,7 @@ func New(e int) Code {
 	if e <= 0 {
 		panic("business ecode must greater than zero")
 	}
-	return add(e)
+	return _add(e)
 }
 
 // Int parse code int to error.
@@ -28,6 +28,7 @@ func String(e string) Code {
 	// try error string
 	i, err := strconv.Atoi(e)
 	if err != nil {
+		//注意：字符串错误统一返回ServerErr（服务器错误500）
 		return ServerErr
 	}
 	return Code(i)

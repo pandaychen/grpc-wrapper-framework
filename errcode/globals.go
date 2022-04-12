@@ -29,9 +29,9 @@ var (
 	Conflict           = _add(-409) // 冲突
 	Canceled           = _add(-498) // 客户端取消请求
 	ServerErr          = _add(-500) // 服务器错误
-	ServiceUnavailable = _add(-503) // 过载保护,服务暂不可用
+	ServiceUnavailable = _add(-503) // 过载保护,服务暂不可用（客户端熔断返回此错误）
 	Deadline           = _add(-504) // 服务调用超时
-	LimitExceed        = _add(-509) // 超出限制
+	LimitExceed        = _add(-509) // 超出限制		（服务端限流返回此错误）
 )
 
 // 注册全局错误码

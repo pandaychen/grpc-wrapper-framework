@@ -2,6 +2,12 @@ package errcode
 
 import "strconv"
 
+/*
+type error interface {
+	Error() string
+}
+*/
+
 // Codes ecode error interface which has a code & message.
 type Codes interface {
 	// sometimes Error return Code in string form
@@ -15,7 +21,7 @@ type Codes interface {
 	Details() []interface{}
 }
 
-// Codes实例化类型，本项目的错误码就是int
+// Codes实例化类型，本项目的错误码就是int，因为Codes实现了Error()方法，所以可以直接当做error返回
 // A Code is an int error code spec.
 type Code int
 
