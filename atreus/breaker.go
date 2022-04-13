@@ -4,12 +4,10 @@ package atreus
 
 import (
 	"context"
-	"fmt"
 	"grpc-wrapper-framework/errcode"
 	"path"
 
 	"github.com/sony/gobreaker"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -42,21 +40,24 @@ func (c *Client) CircuitBreaker() grpc.UnaryClientInterceptor {
 func (c *Client) IsBreakerNeedError(err error) bool {
 	switch status.Code(err) {
 	case codes.DeadlineExceeded, codes.Internal, codes.Unavailable, codes.DataLoss:
-		//属于熔断错误判断范围
-		c.Logger.Error("IsBreakerNeedError need error ok", zap.Any("errmsg", err))
-		return true
-	default:
+		//属于熔断错误判断范围，必须返回false
+		//c.Logger.Error("IsBreakerNeedError need error ok", zap.Any("errmsg", err))
 		return false
+	default:
+		return true
 	}
 }
 
+//如果框架使用grpc的原生错误，那么必须使用status.Code(err)方法对errors进行转换
 func (c *Client) IsBreakerNeedErrorV2(err error) bool {
-	switch status.Code(err) {
-	case codes.DeadlineExceeded, codes.Internal, codes.Unavailable, codes.DataLoss:
-		//属于熔断错误判断范围
-		c.Logger.Error("IsBreakerNeedError need error ok", zap.Any("errmsg", err))
+	//fmt.Println(err, status.Code(err))
+	if err != nil {
+		if errcode.EqualError(errcode.ServerErr, err) || errcode.EqualError(errcode.ServiceUnavailable, err) || errcode.EqualError(errcode.Deadline, err) || errcode.EqualError(errcode.LimitExceed, err) {
+			//触发熔断的错误
+			return false
+		}
+	} else {
+		//其他类型的错误，纳入熔断成功计数范围
 		return true
-	default:
-		return false
 	}
 }
