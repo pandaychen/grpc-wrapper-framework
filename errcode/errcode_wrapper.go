@@ -49,6 +49,10 @@ func Cause(e error) Codes {
 	return String(e.Error())
 }
 
+//判断错误码是否相等
+// `Codes`与`Codes`判断使用：`Equal(ec1, ec2)`
+// `Codes`与`error`类型判断使用：`EqualError(ec, err)`。先从error中剥离得到最原始的`Codes`再比较
+
 // Equal equal a and b by code int.
 func Equal(a, b Codes) bool {
 	if a == nil {

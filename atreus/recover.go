@@ -1,7 +1,6 @@
 package atreus
 
 import (
-	"errors"
 	"fmt"
 	"grpc-wrapper-framework/errcode"
 	"os"
@@ -77,7 +76,7 @@ func (c *Client) Recovery() grpc.UnaryClientInterceptor {
 				buf = buf[:rs]
 				pl := fmt.Sprintf("client panic: %v\n%v\n%v\n%s\n", req, reply, rerr, buf)
 				fmt.Fprintf(os.Stderr, pl)
-				err = errors.New("Client internal error")
+				err = errcode.ServerErr
 			}
 		}()
 		// 注意：客户端的拦截器 invoker，这里是进入下一个拦截器

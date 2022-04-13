@@ -4,6 +4,8 @@ package atreus
 
 import (
 	"context"
+	"fmt"
+	"grpc-wrapper-framework/errcode"
 	"path"
 
 	"github.com/sony/gobreaker"
@@ -13,6 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// 客户端熔断拦截器
 func (c *Client) CircuitBreaker() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error) {
 		breakerName := path.Join(cc.Target(), method)
@@ -27,7 +30,7 @@ func (c *Client) CircuitBreaker() grpc.UnaryClientInterceptor {
 		})
 		if err != nil {
 			// error：circuit breaker is open
-			return err
+			return errcode.ServiceUnavailable
 		}
 		return
 	}
@@ -37,6 +40,17 @@ func (c *Client) CircuitBreaker() grpc.UnaryClientInterceptor {
 //https://grpc.github.io/grpc/core/md_doc_statuscodes.html
 //https://github.com/sony/gobreaker/blob/master/gobreaker.go#L113
 func (c *Client) IsBreakerNeedError(err error) bool {
+	switch status.Code(err) {
+	case codes.DeadlineExceeded, codes.Internal, codes.Unavailable, codes.DataLoss:
+		//属于熔断错误判断范围
+		c.Logger.Error("IsBreakerNeedError need error ok", zap.Any("errmsg", err))
+		return true
+	default:
+		return false
+	}
+}
+
+func (c *Client) IsBreakerNeedErrorV2(err error) bool {
 	switch status.Code(err) {
 	case codes.DeadlineExceeded, codes.Internal, codes.Unavailable, codes.DataLoss:
 		//属于熔断错误判断范围
