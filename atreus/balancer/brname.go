@@ -3,7 +3,8 @@ package balancer
 import (
 	"strconv"
 
-	"github.com/pandaychen/grpc-wrapper-framework/common/vars"
+	"grpc-wrapper-framework/common/vars"
+
 	"google.golang.org/grpc/metadata"
 )
 
@@ -14,6 +15,7 @@ type GRPC_BALANCER_NAME string
 const (
 	BALANCER_RandomWeight_NAME   GRPC_BALANCER_NAME = "RandomWeight"
 	BALANCER_SimpleWeightRR_NAME GRPC_BALANCER_NAME = "SimpleWeightRR"
+	BALANCER_LeastConn_NAME      GRPC_BALANCER_NAME = "LeastConn"
 )
 
 func GetServerWeightValue(mdata interface{}) int {

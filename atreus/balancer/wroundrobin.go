@@ -1,8 +1,7 @@
 package balancer
 
 import (
-	"context"
-	"errors"
+	"github.com/pkg/errors"
 
 	//"math/rand"
 	//"strconv"
@@ -14,7 +13,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/balancer/base"
-	"google.golang.org/grpc/resolver"
+	//"google.golang.org/grpc/resolver"
 )
 
 type simpleRoundRobinPicker struct {
@@ -27,7 +26,7 @@ type simpleRoundRobinPicker struct {
 
 // newsimpleRoundRobinBuilder creates a new roundrobin balancer builder
 func newsimpleRoundRobinBuilder(logger *zap.Logger) balancer.Builder {
-	return base.NewBalancerBuilderWithConfig(string(BALANCER_SimpleWeightRR_NAME),
+	return base.NewBalancerBuilder(string(BALANCER_SimpleWeightRR_NAME),
 		&simpleRoundRobinPickerBuilder{
 			Logger: logger,
 		},
@@ -49,18 +48,18 @@ type simpleRoundRobinPickerBuilder struct {
 }
 
 // Triggers where grpc-client-pool changing(Once backend node On/Off)
-func (r *simpleRoundRobinPickerBuilder) Build(readySCs map[resolver.Address]balancer.SubConn) balancer.Picker {
-	if len(readySCs) == 0 {
+func (r *simpleRoundRobinPickerBuilder) Build(buildInfo base.PickerBuildInfo) balancer.Picker {
+	if len(buildInfo.ReadySCs) == 0 {
 		return base.NewErrPicker(balancer.ErrNoSubConnAvailable)
 	}
-	r.Logger.Info("ready", zap.Any("scs", len(readySCs)))
 
 	wrr := pybalancer.NewNginxWeightRoundrobin(r.Logger)
-
 	var scs []balancer.SubConn
-	for addr, sc := range readySCs {
-		weight := GetServerWeightValue(addr.Metadata)
-		wrr.AddNode(sc, weight)
+	for subconn, sc := range buildInfo.ReadySCs {
+		weight := GetServerWeightValue(sc.Address)
+		// 将conn存储在WRR的slice中
+		wrr.AddNode(sc.Address.Addr, subconn, weight)
+		scs = append(scs, subconn)
 	}
 	//Build的作用是：根据readyScs，构造LB算法选择用的初始化集合，当然可以根据权重对subConns进行调整
 	return &simpleRoundRobinPicker{
@@ -71,18 +70,23 @@ func (r *simpleRoundRobinPickerBuilder) Build(readySCs map[resolver.Address]bala
 }
 
 //Picker方法：每次客户端RPC-CALL都会调用
-func (p *simpleRoundRobinPicker) Pick(ctx context.Context, opts balancer.PickOptions) (balancer.SubConn, func(balancer.DoneInfo), error) {
+func (p *simpleRoundRobinPicker) Pick(balancer.PickInfo) (balancer.PickResult, error) {
+	var (
+		pickResult balancer.PickResult
+	)
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	sc := p.Wrr.GetNextNode()
 
 	if sc == nil {
-		return nil, nil, errors.New("Pick one connection error")
+		return pickResult, errors.New("Pick one connection error")
 	}
 
 	if _, ok := sc.NodeMetadata.(balancer.SubConn); !ok {
-		return nil, nil, errors.New("system error")
+		return pickResult, errors.New("system error")
 	}
 
-	return sc.NodeMetadata.(balancer.SubConn), nil, nil
+	pickResult.SubConn = sc.NodeMetadata.(balancer.SubConn)
+
+	return pickResult, nil
 }
