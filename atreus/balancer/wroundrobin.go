@@ -56,7 +56,8 @@ func (r *simpleRoundRobinPickerBuilder) Build(buildInfo base.PickerBuildInfo) ba
 	wrr := pybalancer.NewNginxWeightRoundrobin(r.Logger)
 	var scs []balancer.SubConn
 	for subconn, sc := range buildInfo.ReadySCs {
-		weight := GetServerWeightValue(sc.Address)
+		//sc.Address.Metadata 等于 &map[weight:[100]]
+		weight := GetServerWeightValue(sc.Address.Metadata)
 		// 将conn存储在WRR的slice中
 		wrr.AddNode(sc.Address.Addr, subconn, weight)
 		scs = append(scs, subconn)

@@ -13,6 +13,7 @@ import (
 type GRPC_BALANCER_NAME string
 
 const (
+	BALANCER_DEFAULT_RR_NAME                        = "round_robin" //默认grpc实现
 	BALANCER_RandomWeight_NAME   GRPC_BALANCER_NAME = "RandomWeight"
 	BALANCER_SimpleWeightRR_NAME GRPC_BALANCER_NAME = "SimpleWeightRR"
 	BALANCER_LeastConn_NAME      GRPC_BALANCER_NAME = "LeastConn"
