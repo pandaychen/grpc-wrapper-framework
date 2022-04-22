@@ -44,6 +44,9 @@ type AtreusSvcConfig struct {
 
 	//ACL
 	AclConf *AclConfig `json:"acl_conf"`
+
+	//tracer
+	TracingConf *TracingConfig
 }
 
 //global
@@ -154,6 +157,16 @@ func AtreusSvcConfigInit() {
 		atreus_svc_config.LogConf.Sampling = SubLogConfig.GetFloat64("sampling")
 	}
 
+	//tracing config
+	atreus_svc_config.TracingConf = new(TracingConfig)
+	SubTracingconfig := Config.Use("tracing")
+	if SubTracingconfig == nil {
+		//not set
+	} else {
+		atreus_svc_config.TracingConf.ServiceName = SubTracingconfig.MustString("service_name", "atreus_server")
+		atreus_svc_config.TracingConf.Collector = SubTracingconfig.MustString("collector", "127.0.0.1:6831")
+		atreus_svc_config.TracingConf.TracerType = SubTracingconfig.MustString("type", "jaeger")
+	}
 }
 
 func main() {

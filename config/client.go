@@ -38,6 +38,9 @@ type AtreusCliConfig struct {
 
 	//retry
 	RetryConf *ClientRetryConfig
+
+	//tracer
+	TracingConf *TracingConfig
 }
 
 //global
@@ -147,5 +150,16 @@ func AtreusCliConfigInit() {
 		atreus_cli_config.RetryConf.Maxretry = SubRetryconfig.MustInt("max_retry", 2)
 		atreus_cli_config.RetryConf.PerCallTimeout = SubRetryconfig.MustDuration("per_call_timeout", 3*time.Second)
 		atreus_cli_config.RetryConf.HeaderSign = SubRetryconfig.MustBool("inject_header_sign", true)
+	}
+
+	//tracing config
+	atreus_cli_config.TracingConf = new(TracingConfig)
+	SubTracingconfig := Config.Use("tracing")
+	if SubTracingconfig == nil {
+		//not set
+	} else {
+		atreus_cli_config.TracingConf.ServiceName = SubTracingconfig.MustString("service_name", "atreus_client")
+		atreus_cli_config.TracingConf.Collector = SubTracingconfig.MustString("collector", "127.0.0.1:6831")
+		atreus_cli_config.TracingConf.TracerType = SubTracingconfig.MustString("type", "jaeger")
 	}
 }

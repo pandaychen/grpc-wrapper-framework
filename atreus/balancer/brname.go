@@ -33,3 +33,5 @@ func GetServerWeightValue(mdata interface{}) int {
 	}
 	return vars.DEFAULT_WEIGHT
 }
+
+//新版本Address结构：https://pkg.go.dev/google.golang.org/grpc/resolver#Address
