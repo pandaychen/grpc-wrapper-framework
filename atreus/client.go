@@ -3,12 +3,14 @@ package atreus
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+
+	"grpc-wrapper-framework/atreus/balancer"
 	"grpc-wrapper-framework/common/enums"
 	"grpc-wrapper-framework/common/vars"
 	"grpc-wrapper-framework/config"
@@ -16,6 +18,8 @@ import (
 	dis "grpc-wrapper-framework/microservice/discovery"
 	com "grpc-wrapper-framework/microservice/discovery/common"
 	"grpc-wrapper-framework/microservice/retrys"
+
+	"github.com/opentracing/opentracing-go"
 
 	"github.com/sony/gobreaker"
 	"go.uber.org/zap"
@@ -40,6 +44,9 @@ type Client struct {
 
 	//retry
 	MaxRetry int
+
+	//tracing obj
+	tracer opentracing.Tracer
 
 	RpcPersistClient *grpc.ClientConn
 }
@@ -97,7 +104,18 @@ func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 	if !is_direct {
 		switch config.CliConf.LbType {
 		case string(enums.LB_TYPE_RR):
-			cli.DialOpts = append(cli.DialOpts, grpc.WithBalancerName("round_robin"))
+			//default lb
+			cli.DialOpts = append(cli.DialOpts, grpc.WithBalancerName(balancer.BALANCER_DEFAULT_RR_NAME))
+		case string(enums.LB_TYPE_WRR):
+			// 注册balancer
+			balancer.RegisterSimpleRoundRobinPickerBuilder()
+			cli.DialOpts = append(cli.DialOpts, grpc.WithBalancerName(string(balancer.BALANCER_SimpleWeightRR_NAME)))
+		case string(enums.LB_TYPE_LEASTCONN):
+			balancer.RegisterLeastConnPickerBuilder()
+			cli.DialOpts = append(cli.DialOpts, grpc.WithBalancerName(string(balancer.BALANCER_LeastConn_NAME)))
+		case string(enums.LB_TYPE_RAND):
+			balancer.RegisterRandomBuilderPickerBuilder()
+			cli.DialOpts = append(cli.DialOpts, grpc.WithBalancerName(string(balancer.BALANCER_RandomWeight_NAME)))
 		default:
 			return nil, errors.New("not support lb type")
 		}
