@@ -15,6 +15,8 @@ import (
 	"grpc-wrapper-framework/common/vars"
 	"grpc-wrapper-framework/config"
 	"grpc-wrapper-framework/logger"
+
+	"grpc-wrapper-framework/atreus/tracers"
 	dis "grpc-wrapper-framework/microservice/discovery"
 	com "grpc-wrapper-framework/microservice/discovery/common"
 	"grpc-wrapper-framework/microservice/retrys"
@@ -46,7 +48,8 @@ type Client struct {
 	MaxRetry int
 
 	//tracing obj
-	tracer opentracing.Tracer
+	tracer     opentracing.Tracer
+	tracerType enums.TracerType
 
 	RpcPersistClient *grpc.ClientConn
 }
@@ -108,13 +111,13 @@ func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 			cli.DialOpts = append(cli.DialOpts, grpc.WithBalancerName(balancer.BALANCER_DEFAULT_RR_NAME))
 		case string(enums.LB_TYPE_WRR):
 			// 注册balancer
-			balancer.RegisterSimpleRoundRobinPickerBuilder()
+			balancer.RegisterSimpleRoundRobinPickerBuilder(logger)
 			cli.DialOpts = append(cli.DialOpts, grpc.WithBalancerName(string(balancer.BALANCER_SimpleWeightRR_NAME)))
 		case string(enums.LB_TYPE_LEASTCONN):
-			balancer.RegisterLeastConnPickerBuilder()
+			balancer.RegisterLeastConnPickerBuilder(logger)
 			cli.DialOpts = append(cli.DialOpts, grpc.WithBalancerName(string(balancer.BALANCER_LeastConn_NAME)))
 		case string(enums.LB_TYPE_RAND):
-			balancer.RegisterRandomBuilderPickerBuilder()
+			balancer.RegisterRandomBuilderPickerBuilder(logger)
 			cli.DialOpts = append(cli.DialOpts, grpc.WithBalancerName(string(balancer.BALANCER_RandomWeight_NAME)))
 		default:
 			return nil, errors.New("not support lb type")
@@ -128,6 +131,14 @@ func NewClient(config *config.AtreusCliConfig) (*Client, error) {
 
 	//init client interceptors
 	cli.Use(cli.Recovery(), cli.Timing())
+
+	//add tracers
+	cli.tracer, _, err = tracers.NewJaegerTracer(config.TracingConf.ServiceName, config.TracingConf.Collector)
+	if err != nil {
+		logger.Error("[NewClient]NewJaegerTracer error", zap.String("errmsg", err.Error()))
+	} else {
+		cli.Use(cli.OpenTracingForClient())
+	}
 
 	//参数校验，在熔断器之前
 	cli.Use(cli.ClientValidator())
