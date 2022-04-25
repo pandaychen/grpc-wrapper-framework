@@ -74,28 +74,40 @@ func (s *Server) OpenTracingForServer() grpc.UnaryServerInterceptor {
 			ok      bool
 			carrier tracers.MDReaderWriter
 		)
-
+		//1. get metadata from incoming context
 		md, ok = metadata.FromIncomingContext(ctx)
 		if !ok {
 			md = metadata.New(nil)
 		}
-
+		//md = map[app:[test] atreus-requestid:[cvalue] content-type:[application/grpc] key2:[value2] key4:[value4] method:[normal] token:[test] uber-trace-id:[63a25153147e5a39:63a25153147e5a39:0000000000000000:1] user-agent:[grpc-go/1.40.0] weight:[100]]
 		carrier = tracers.MDReaderWriter{md}
+		//carrier = {map[app:[test] atreus-requestid:[cvalue] content-type:[application/grpc] key2:[value2] key4:[value4] method:[normal] token:[test] uber-trace-id:[63a25153147e5a39:63a25153147e5a39:0000000000000000:1] user-agent:[grpc-go/1.40.0] weight:[100]]}
 
-		//2.	extract from context  metadata.MD => carrier
+		//2.    extract from context  metadata.MD => carrier
 		spanContext, err := s.tracer.Extract(opentracing.TextMap, carrier)
 		if err != nil && err != opentracing.ErrSpanContextNotFound {
 			s.Logger.Error("[Server]extract from metadata err", zap.String("errmsg", err.Error()))
 		} else {
 
 			//3. new span
+			/*
+				span := s.tracer.StartSpan(
+						args.FullMethod,
+						ext.RPCServerOption(spanContext),
+						opentracing.Tag{Key: string(ext.Component), Value: "gRPC"},
+						ext.SpanKindRPCServer,
+				)
+			*/
 			span := s.tracer.StartSpan(
-				args.FullMethod, //service name
-				ext.RPCServerOption(spanContext),
+				args.FullMethod,
+				opentracing.ChildOf(spanContext),
 				opentracing.Tag{Key: string(ext.Component), Value: "gRPC"},
-				ext.SpanKindRPCServer,
-			)
-			// report span when finish
+				ext.SpanKindRPCServer)
+
+			//4、log span
+			for k, v := range carrier.MD {
+				span.SetTag(k, v)
+			}
 			defer span.Finish()
 
 			ctx = opentracing.ContextWithSpan(ctx, span)
