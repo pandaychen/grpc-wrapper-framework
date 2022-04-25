@@ -46,7 +46,7 @@ type AtreusSvcConfig struct {
 	AclConf *AclConfig `json:"acl_conf"`
 
 	//tracer
-	TracingConf *TracingConfig
+	TracingConf *TracingConfig `json:"tracing"`
 }
 
 //global

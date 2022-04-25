@@ -15,12 +15,12 @@ import (
 )
 
 //MDReaderWriter metadata Reader and Writer
-// 封装carrier，必须实现ForeachKey/Set方法
+// 封装carrier，必须实现ForeachKey（通常服务端）/Set方法（通常客户端）
 type MDReaderWriter struct {
 	metadata.MD
 }
 
-// ForeachKey implements ForeachKey of opentracing.TextMapReader
+// ForeachKey implements ForeachKey of opentracing.TextMapReader，需要实现ForeachKey方法（Extracter）
 func (c MDReaderWriter) ForeachKey(handler func(key, val string) error) error {
 	for k, vs := range c.MD {
 		for _, v := range vs {
@@ -32,7 +32,7 @@ func (c MDReaderWriter) ForeachKey(handler func(key, val string) error) error {
 	return nil
 }
 
-// Set implements Set() of opentracing.TextMapWriter
+// Set implements Set() of opentracing.TextMapWriter，需要实现Set方法（Injecter）
 func (c MDReaderWriter) Set(key, val string) {
 	key = strings.ToLower(key)
 	c.MD[key] = append(c.MD[key], val)

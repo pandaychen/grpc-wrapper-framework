@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
@@ -24,6 +25,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 
+	"grpc-wrapper-framework/atreus/tracers"
 	"grpc-wrapper-framework/common/enums"
 	"grpc-wrapper-framework/common/vars"
 	"grpc-wrapper-framework/config"
@@ -63,6 +65,10 @@ type Server struct {
 	//Log sampling
 	Sampling float64
 	Proba    *xmath.XProbability
+
+	//tracing obj
+	tracer     opentracing.Tracer
+	tracerType enums.TracerType
 
 	//wrapper Server
 	RpcServer *grpc.Server //原生Server
@@ -163,8 +169,18 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 
 	//Fill the interceptors
 
+	//create server tracers
+	srv.tracer, _, err = tracers.NewJaegerTracer(conf.TracingConf.ServiceName, conf.TracingConf.Collector)
+	if err != nil {
+		logger.Error("[NewServer]NewJaegerTracer error", zap.String("errmsg", err.Error()))
+	}
 	//注意：Metrics2Prometheus必须放在Limiters的前面，否则，捕获不到Limiters返回的错误（所有基础的拦截器都放在前面）
-	srv.Use(srv.Recovery(), srv.TransError(), srv.Timing(), srv.XRequestId(), srv.Metrics2Prometheus())
+	if err != nil {
+		srv.Use(srv.Recovery(), srv.TransError(), srv.Timing(), srv.XRequestId(), srv.Metrics2Prometheus())
+	} else {
+		//tracing放在recovery拦截器的后面
+		srv.Use(srv.Recovery(), srv.OpenTracingForServer(), srv.TransError(), srv.Timing(), srv.XRequestId(), srv.Metrics2Prometheus())
+	}
 
 	//服务端ACL
 	if conf.AclConf.On {
