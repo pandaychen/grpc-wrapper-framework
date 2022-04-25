@@ -188,7 +188,12 @@ func (c *Client) TransError() grpc.UnaryClientInterceptor {
 		gst, _ := status.FromError(err)
 		ec := ToErrEcode(gst)
 		// 是想把服务端的错误返回给被调用方
-		err = errors.WithMessage(ec, gst.Message()) // 将 status.Status 通过 pkg/errors 包发送给调用方
+		if ec != errcode.OK {
+			err = errors.WithMessage(ec, gst.Message()) // 将 status.Status 通过 pkg/errors 包发送给调用方
+		} else {
+			//succ
+			err = nil
+		}
 		return
 	}
 }
