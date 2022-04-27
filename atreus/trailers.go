@@ -7,6 +7,8 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/pandaychen/goes-wrapper/system"
 )
 
 //将cpu数据作为拦截器，每一次rpc调用都采集并返回客户端
@@ -17,15 +19,18 @@ import (
 func (s *Server) ServerStat() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, args *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		var (
-			cpu_usage int64
+			cpu_usage uint64
+			serr      error
 		)
 		resp, err = handler(ctx, req)
 		//在rpc完成时采集，不区分错误
 		//请求处理完成时，设置cpu-stat，读取一次cpu的瞬时值
-		if cpu_usage != 0 {
+		cpu_usage, _, serr = system.GetCurrentCpuSystemMetrics()
+		if serr == nil && cpu_usage != 0 {
 			//每次客户端RPC请求，服务端都会计算cpu使用率，gRPC客户端在Pick的DoneInfo中获取此值
 			trailer := metadata.Pairs([]string{xmd.CPUloadKey, strconv.FormatInt(int64(cpu_usage), 10)}...)
 			//每次rpc请求时，放在tailer，返回给客户端
+			//fmt.Println(trailer)	//map[cpu_usage:[4]]
 			grpc.SetTrailer(ctx, trailer)
 		}
 		return

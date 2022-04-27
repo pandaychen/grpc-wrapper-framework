@@ -35,6 +35,8 @@ import (
 	discom "grpc-wrapper-framework/microservice/discovery/common"
 	"grpc-wrapper-framework/pkg/xmath"
 	"grpc-wrapper-framework/pkg/xrand"
+
+	"github.com/pandaychen/goes-wrapper/system"
 )
 
 const (
@@ -102,6 +104,9 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		Ctx:                 context.Background(),
 		Sampling:            conf.LogConf.Sampling,
 	}
+
+	//开启CPU采集
+	system.StartPyCpuSystemMetrics(logger, conf.SysCollectorConf.Cputype, float64(conf.SysCollectorConf.Multiply), conf.SysCollectorConf.CollectorDuration)
 
 	if srv.Sampling > 0 {
 		srv.Proba = xmath.NewProbability(srv.Sampling)

@@ -47,6 +47,9 @@ type AtreusSvcConfig struct {
 
 	//tracer
 	TracingConf *TracingConfig `json:"tracing"`
+
+	//system collector
+	SysCollectorConf *SysCollectorConfig `json:"collector"`
 }
 
 //global
@@ -166,6 +169,17 @@ func AtreusSvcConfigInit() {
 		atreus_svc_config.TracingConf.ServiceName = SubTracingconfig.MustString("service_name", "atreus_server")
 		atreus_svc_config.TracingConf.Collector = SubTracingconfig.MustString("collector", "127.0.0.1:6831")
 		atreus_svc_config.TracingConf.TracerType = SubTracingconfig.MustString("type", "jaeger")
+	}
+
+	//collector config
+	atreus_svc_config.SysCollectorConf = new(SysCollectorConfig)
+	SubCollectorconfig := Config.Use("collector")
+	if SubCollectorconfig == nil {
+		//not set
+	} else {
+		atreus_svc_config.SysCollectorConf.Cputype = SubCollectorconfig.MustString("type", "cvm")
+		atreus_svc_config.SysCollectorConf.CollectorDuration = SubCollectorconfig.MustDuration("duration", 500*time.Millisecond)
+		atreus_svc_config.SysCollectorConf.Multiply = SubCollectorconfig.MustInt("multiply", 10)
 	}
 }
 
