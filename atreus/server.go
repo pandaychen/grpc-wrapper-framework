@@ -187,6 +187,8 @@ func NewServer(conf *config.AtreusSvcConfig, opt ...grpc.ServerOption) *Server {
 		srv.Use(srv.Recovery(), srv.OpenTracingForServer(), srv.TransError(), srv.Timing(), srv.XRequestId(), srv.Metrics2Prometheus())
 	}
 
+	srv.Use(srv.ServerStat())
+
 	//服务端ACL
 	if conf.AclConf.On {
 		srv.CallerIp = append(srv.CallerIp, conf.AclConf.WhiteIpList...)
