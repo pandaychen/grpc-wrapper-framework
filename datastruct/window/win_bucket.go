@@ -1,4 +1,4 @@
-package main
+package window
 
 type WinBucket struct {
 	Sum   float64 //成功统计的总数（当前窗口）

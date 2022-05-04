@@ -1,4 +1,4 @@
-package main
+package window
 
 import (
 	"time"
@@ -10,7 +10,7 @@ type SliderWindowOption func(sw *SliderWindow)
 
 func IgnoreCurrentBucket() SliderWindowOption {
 	return func(w *SliderWindow) {
-		w.ignoreCurrent = true
+		w.ignoreCurrentBucket = true
 	}
 }
 

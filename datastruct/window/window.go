@@ -1,4 +1,4 @@
-package main
+package window
 
 // window is  like a ring queue
 type Window struct {
@@ -31,5 +31,14 @@ func (w *Window) add(offset int, v float64) {
 func (w *Window) resetBucket(offset int) {
 	if bucket := w.buckets[offset%w.size]; bucket != nil {
 		bucket.reset()
+	}
+}
+
+// map-reduce...
+// from start，counting n，doing fn(WinBucket)
+func (w *Window) reduce(start, n int, fn func(b *WinBucket)) {
+	for i := 0; i < n; i++ {
+		//依次执行fn
+		fn(w.buckets[(start+i)%w.size])
 	}
 }
