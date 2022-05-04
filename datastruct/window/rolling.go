@@ -1,6 +1,8 @@
-package main
+package window
 
 import (
+	//"math/rand"
+	"fmt"
 	"sync"
 	"time"
 
@@ -12,12 +14,12 @@ import (
 type SliderWindow struct {
 	sync.RWMutex
 	offset   int           //记录本次的偏移
-	size     int           //大小
+	size     int           //大小（可能需要累加到size？）
 	window   *Window       //实际的存储地址
 	interval time.Duration //一个窗口对应的duration
 
-	ignoreCurrent bool
-	lastTime      time.Duration // start time of the last bucket	（9504h0m0.000065241s）
+	ignoreCurrentBucket bool          //统计的时候是否忽略当前bucket（数据不全）
+	lastTime            time.Duration // start time of the last bucket      （9504h0m0.000065241s）
 
 	logger *zap.Logger
 }
@@ -107,6 +109,72 @@ func (w *SliderWindow) Add(v float64) {
 	w.window.add(w.offset, v)
 }
 
+// 聚合滑动窗口中的所有有效bucket的数据
+func (w *SliderWindow) Reduce(fn func(b *WinBucket)) {
+	var (
+		span  int
+		start int
+		count int
+	)
+	w.RLock()
+	defer w.RUnlock()
+
+	// 计算当前时间截止前，已过期桶的数量
+	span = w.getSpan()
+	// ignore current bucket, because of partial data
+	//这里span非0的话，说明当前时间离最近一次时间有跨度，需要排除掉（这些跨度中无新数据）
+	if span == 0 && w.ignoreCurrentBucket {
+		count = w.size - 1
+	} else {
+		count = w.size - span
+	}
+	if count > 0 {
+		// w.offset 与 rw.offset+span之间的桶数据是过期的，不应该计入统计
+		start = (w.offset + span + 1) % w.size //这里暴力的轮询完整个size的窗口数目
+
+		//聚合数据
+		w.window.reduce(start, count, fn)
+	}
+}
+
 func main() {
-	NewSliderWindow(SetWindowSize(10), SetInterval(500*time.Millisecond))
+	var (
+		winSize  = 4
+		duration = time.Millisecond * 500
+	)
+	window := NewSliderWindow(SetWindowSize(winSize), SetInterval(duration))
+	stop := make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				window.Add(float64(2))
+				time.Sleep(duration / time.Duration(winSize))
+			}
+		}
+	}()
+	go func() {
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				var (
+					result float64
+					count  int64
+				)
+				time.Sleep(time.Duration(winSize) * duration)
+				window.Reduce(func(b *WinBucket) {
+					result += b.Sum
+					count += b.Count
+
+				})
+				fmt.Println("result=", result, "count=", count)
+			}
+		}
+	}()
+	time.Sleep(duration * 5000)
+	close(stop)
 }
