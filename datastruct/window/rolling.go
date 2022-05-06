@@ -95,7 +95,7 @@ func (w *SliderWindow) updateOffset() {
 	// align to interval time boundary
 
 	//更新lastTime
-	w.lastTime = nowTime
+	w.lastTime = nowTime - (nowTime-w.lastTime)%w.interval
 }
 
 // 向当前时间对应的bucket中追加数值
