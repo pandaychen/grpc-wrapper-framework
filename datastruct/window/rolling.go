@@ -84,7 +84,7 @@ func (w *SliderWindow) updateOffset() {
 	}
 
 	oldOffset = w.offset //上一次记录的offset开始
-	// 重置过期的窗口
+	// 重置过期的窗口 或者 当窗口移动时，重置当前的新窗口（当时间已经滑到queue最后一个位置时，利用%size重置第一个位置）
 	for i := 0; i < span; i++ {
 		w.window.resetBucket((oldOffset + i + 1) % w.size)
 	}
