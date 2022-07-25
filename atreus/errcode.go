@@ -30,6 +30,7 @@ func TransContextErr2GrpcErr(err error) error {
 
 // 判断 err 是否为 ctx 错误（DeadlineExceeded || Canceled）
 func IsContextError(err error) bool {
+	//https://github.com/grpc/grpc-go/blob/v1.48.0/status/status.go#L108
 	code := status.Code(err)
 	return code == codes.DeadlineExceeded || code == codes.Canceled
 }
@@ -55,7 +56,7 @@ func ToErrEcode(gst *status.Status) errcode.Codes {
 	return toErrCode(gst)
 }
 
-// 将 grpc 的标准错误码转换为项目定义的错误码
+// 将 grpc 的标准错误码转换为项目定义的错误码`grpc-wrapper-framework/errcode`
 func toErrCode(grcpStauts *status.Status) errcode.Code {
 	gcode := grcpStauts.Code()
 	switch gcode {

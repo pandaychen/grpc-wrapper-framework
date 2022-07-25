@@ -20,7 +20,7 @@ var (
 	OK = _add(0) // 正确
 
 	NotModified        = _add(-304) // 木有改动
-	TemporaryRedirect  = _add(-307) // 撞车跳转
+	TemporaryRedirect  = _add(-307) // 302跳转
 	RequestErr         = _add(-400) // 请求错误
 	Unauthorized       = _add(-401) // 未认证
 	AccessDenied       = _add(-403) // 访问权限不足
