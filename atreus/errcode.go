@@ -18,6 +18,10 @@ import (
 
 // 转换 ctx 错误为 grpc 的标注错误
 func TransContextErr2GrpcErr(err error) error {
+	if err == nil {
+		return nil
+	}
+
 	switch err {
 	case context.DeadlineExceeded:
 		return status.Error(codes.DeadlineExceeded, err.Error())
@@ -31,6 +35,9 @@ func TransContextErr2GrpcErr(err error) error {
 // 判断 err 是否为 ctx 错误（DeadlineExceeded || Canceled）
 func IsContextError(err error) bool {
 	//https://github.com/grpc/grpc-go/blob/v1.48.0/status/status.go#L108
+	if err == nil {
+		return false
+	}
 	code := status.Code(err)
 	return code == codes.DeadlineExceeded || code == codes.Canceled
 }
@@ -172,9 +179,11 @@ func (s *Server) TransError() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, args *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		resp, err = handler(ctx, req)
 
+		if err == nil {
+			return resp, nil
+		}
 		// 统一转换错误
 		return resp, ConvertNormalError(err).Err()
-		return
 	}
 }
 
