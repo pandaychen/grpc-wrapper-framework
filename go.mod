@@ -1,4 +1,4 @@
-module grpc-wrapper-framework
+module github.com/pandaychen/grpc-wrapper-framework
 
 go 1.16
 
